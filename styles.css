@@ -149,8 +149,33 @@ button:hover {
     transition: all 0.3s ease;
 }
 
+
 .screenshot-btn:hover {
     background: linear-gradient(135deg, #357abd, #2a5f91);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(74, 158, 255, 0.4);
+}
+
+.transform-panel {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+    background: rgba(0,0,0,0.7);
+    padding: 20px;
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
+    width: 240px;
+}
+
+.transform-header {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.transform-header h3 {
+    margin: 0;
+    color: #4a9eff;
+    font-size: 16px;
 }

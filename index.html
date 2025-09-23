@@ -52,7 +52,7 @@
                 </div>
                 
                 <div class="angle-group">
-                    <h4 style="margin: 0 0 10px 0; color: #4a9eff;">빛 방향 (Rotation)</h4>
+                    <h4 style="margin: 0 0 10px 0; color: #4a9eff;">빛</h4>
                     
                     <div style="display: flex; gap: 15px; flex-wrap: wrap;">
                         <div style="flex: 1; min-width: 80px;">
@@ -66,44 +66,6 @@
                         <div style="flex: 1; min-width: 80px;">
                             <label style="font-size: 12px;">Z: <span id="lightRotZValue">0</span>°</label>
                             <input type="number" id="lightRotZ" min="-180" max="180" step="5" value="0" style="width: 100%; padding: 4px; border-radius: 3px; border: 1px solid #555; background: #333; color: white;">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="angle-group">
-                    <h4 style="margin: 0 0 10px 0; color: #4a9eff;">오브젝트 위치</h4>
-                    
-                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-                        <div style="flex: 1; min-width: 80px;">
-                            <label style="font-size: 12px;">X: <span id="modelPosXValue">0.0</span></label>
-                            <input type="number" id="modelPosX" step="0.1" value="0" style="width: 100%; padding: 4px; border-radius: 3px; border: 1px solid #555; background: #333; color: white;">
-                        </div>
-                        <div style="flex: 1; min-width: 80px;">
-                            <label style="font-size: 12px;">Y: <span id="modelPosYValue">0.0</span></label>
-                            <input type="number" id="modelPosY" step="0.1" value="0" style="width: 100%; padding: 4px; border-radius: 3px; border: 1px solid #555; background: #333; color: white;">
-                        </div>
-                        <div style="flex: 1; min-width: 80px;">
-                            <label style="font-size: 12px;">Z: <span id="modelPosZValue">0.0</span></label>
-                            <input type="number" id="modelPosZ" step="0.1" value="0" style="width: 100%; padding: 4px; border-radius: 3px; border: 1px solid #555; background: #333; color: white;">
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="angle-group">
-                    <h4 style="margin: 0 0 10px 0; color: #4a9eff;">오브젝트 회전</h4>
-                    
-                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-                        <div style="flex: 1; min-width: 80px;">
-                            <label style="font-size: 12px;">X: <span id="modelRotXValue">0</span>°</label>
-                            <input type="number" id="modelRotX" min="-180" max="180" step="5" value="0" style="width: 100%; padding: 4px; border-radius: 3px; border: 1px solid #555; background: #333; color: white;">
-                        </div>
-                        <div style="flex: 1; min-width: 80px;">
-                            <label style="font-size: 12px;">Y: <span id="modelRotYValue">0</span>°</label>
-                            <input type="number" id="modelRotY" min="-180" max="180" step="5" value="0" style="width: 100%; padding: 4px; border-radius: 3px; border: 1px solid #555; background: #333; color: white;">
-                        </div>
-                        <div style="flex: 1; min-width: 80px;">
-                            <label style="font-size: 12px;">Z: <span id="modelRotZValue">0</span>°</label>
-                            <input type="number" id="modelRotZ" min="-180" max="180" step="5" value="0" style="width: 100%; padding: 4px; border-radius: 3px; border: 1px solid #555; background: #333; color: white;">
                         </div>
                     </div>
                 </div>
@@ -121,6 +83,47 @@
                 <div class="control-group">
                     <button onclick="resetCamera()">카메라 리셋</button>
                     <button onclick="resetLightDirection()">빛 방향 리셋</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 오브젝트 패널 -->
+        <div id="transform-panel" class="transform-panel" style="display: none;">
+            <div class="angle-group">
+                <h4 style="margin: 0 0 10px 0; color: #4a9eff;">Position</h4>
+                
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 55px;">
+                        <label style="font-size: 11px;">X: <span id="modelPosXValue">0.0</span></label>
+                        <input type="number" id="modelPosX" step="0.1" value="0" style="width: 100%; padding: 3px; border-radius: 3px; border: 1px solid #555; background: #333; color: white; font-size: 12px;">
+                    </div>
+                    <div style="flex: 1; min-width: 55px;">
+                        <label style="font-size: 11px;">Y: <span id="modelPosYValue">0.0</span></label>
+                        <input type="number" id="modelPosY" step="0.1" value="0" style="width: 100%; padding: 3px; border-radius: 3px; border: 1px solid #555; background: #333; color: white; font-size: 12px;">
+                    </div>
+                    <div style="flex: 1; min-width: 55px;">
+                        <label style="font-size: 11px;">Z: <span id="modelPosZValue">0.0</span></label>
+                        <input type="number" id="modelPosZ" step="0.1" value="0" style="width: 100%; padding: 3px; border-radius: 3px; border: 1px solid #555; background: #333; color: white; font-size: 12px;">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="angle-group">
+                <h4 style="margin: 0 0 10px 0; color: #4a9eff;">Rotation</h4>
+                
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 55px;">
+                        <label style="font-size: 11px;">X: <span id="modelRotXValue">0</span>°</label>
+                        <input type="number" id="modelRotX" min="-180" max="180" step="5" value="0" style="width: 100%; padding: 3px; border-radius: 3px; border: 1px solid #555; background: #333; color: white; font-size: 12px;">
+                    </div>
+                    <div style="flex: 1; min-width: 55px;">
+                        <label style="font-size: 11px;">Y: <span id="modelRotYValue">0</span>°</label>
+                        <input type="number" id="modelRotY" min="-180" max="180" step="5" value="0" style="width: 100%; padding: 3px; border-radius: 3px; border: 1px solid #555; background: #333; color: white; font-size: 12px;">
+                    </div>
+                    <div style="flex: 1; min-width: 55px;">
+                        <label style="font-size: 11px;">Z: <span id="modelRotZValue">0</span>°</label>
+                        <input type="number" id="modelRotZ" min="-180" max="180" step="5" value="0" style="width: 100%; padding: 3px; border-radius: 3px; border: 1px solid #555; background: #333; color: white; font-size: 12px;">
+                    </div>
                 </div>
             </div>
         </div>

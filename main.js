@@ -116,12 +116,22 @@ function handleCanvasClick(event) {
     const modelIntersects = raycaster.intersectObjects(modelObjects, true);
     
     if (modelIntersects.length > 0) {
-        // 모델 클릭 시 기즈모 표시
+        // 모델 클릭 시 기즈모 표시 및 패널 표시
         transformControls.attach(state.currentModel);
+        showTransformPanel();
     } else {
-        // 빈 공간 클릭 시 기즈모 숨김
+        // 빈 공간 클릭 시 기즈모 숨김 및 패널 숨김
         transformControls.detach();
+        hideTransformPanel();
     }
+}
+
+function showTransformPanel() {
+    document.getElementById('transform-panel').style.display = 'block';
+}
+
+function hideTransformPanel() {
+    document.getElementById('transform-panel').style.display = 'none';
 }
 
 async function handleFileUpload(event) {
@@ -171,8 +181,9 @@ function loadModel(model) {
 
     uiControls.updateLightDirection();
     
-    // 이동 기즈모 표시
+    // 이동 기즈모 표시 및 패널 표시
     transformControls.attach(state.currentModel);
+    showTransformPanel();
 }
 
 function takeScreenshot() {
