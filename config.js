@@ -34,5 +34,6 @@ export class AppState {
         this.lightDirection = new THREE.Vector3();
         this.modelScale = CONFIG.defaults.modelScale;
         this.lightRotation = { ...CONFIG.defaults.lightRotation };
+        this.modelPosition = { x: 0, y: 0, z: 0 };
     }
 }

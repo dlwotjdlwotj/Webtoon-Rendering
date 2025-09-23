@@ -14,6 +14,37 @@ export class UIControls {
         document.getElementById('lightRotZ').addEventListener('input', () => this.updateLightRotation());
         document.getElementById('moveSpeedSlider').addEventListener('input', () => this.updateMoveSpeed());
         document.getElementById('brightness').addEventListener('input', () => this.updateBrightness());
+        
+        // 오브젝트 위치 입력 리스너
+        document.getElementById('modelPosX').addEventListener('input', () => this.updateModelPosition());
+        document.getElementById('modelPosY').addEventListener('input', () => this.updateModelPosition());
+        document.getElementById('modelPosZ').addEventListener('input', () => this.updateModelPosition());
+    }
+
+    updateModelPosition() {
+        this.state.modelPosition.x = parseFloat(document.getElementById('modelPosX').value) || 0;
+        this.state.modelPosition.y = parseFloat(document.getElementById('modelPosY').value) || 0;
+        this.state.modelPosition.z = parseFloat(document.getElementById('modelPosZ').value) || 0;
+        
+        this.updateModelPositionUI(this.state.modelPosition);
+        
+        if (this.state.currentModel) {
+            this.state.currentModel.position.set(
+                this.state.modelPosition.x,
+                this.state.modelPosition.y,
+                this.state.modelPosition.z
+            );
+        }
+    }
+
+    updateModelPositionUI(position) {
+        document.getElementById('modelPosX').value = position.x.toFixed(1);
+        document.getElementById('modelPosY').value = position.y.toFixed(1);
+        document.getElementById('modelPosZ').value = position.z.toFixed(1);
+        
+        document.getElementById('modelPosXValue').textContent = position.x.toFixed(1);
+        document.getElementById('modelPosYValue').textContent = position.y.toFixed(1);
+        document.getElementById('modelPosZValue').textContent = position.z.toFixed(1);
     }
 
     updateModelScale() {

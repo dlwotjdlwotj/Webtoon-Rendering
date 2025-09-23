@@ -4,16 +4,15 @@ import { CameraController } from './camera.js';
 import { GLBLoader } from './loaders/glbLoader.js';
 import { OBJLoader } from './loaders/objLoader.js';
 import { UIControls } from './uiControls.js';
+import { TransformControls } from './transformControls.js';
 
 const state = new AppState();
-let renderManager, cameraController, uiControls;
+let renderManager, cameraController, uiControls, transformControls;
 
 function init() {
-    // Scene setup
     state.scene = new THREE.Scene();
     state.scene.background = new THREE.Color(CONFIG.renderer.backgroundColor);
     
-    // Camera setup
     state.camera = new THREE.PerspectiveCamera(
         CONFIG.camera.fov,
         window.innerWidth / window.innerHeight,
@@ -21,7 +20,6 @@ function init() {
         CONFIG.camera.far
     );
     
-    // Renderer setup
     state.renderer = new THREE.WebGLRenderer({ 
         antialias: true, 
         preserveDrawingBuffer: true,
@@ -33,20 +31,27 @@ function init() {
     state.renderer.outputEncoding = CONFIG.renderer.outputEncoding;
     document.getElementById('container').appendChild(state.renderer.domElement);
     
-    // Initialize managers
     renderManager = new RenderManager(state);
     renderManager.setupRenderTargets();
     
     cameraController = new CameraController(state.camera);
     uiControls = new UIControls(state, cameraController, renderManager);
     
-    // Setup lighting
-    setupLighting();
+    transformControls = new TransformControls(state.camera, state.renderer.domElement);
+    state.scene.add(transformControls);
     
-    // Setup events
+    transformControls.onPositionChange = (position) => {
+        state.modelPosition = {
+            x: position.x,
+            y: position.y,
+            z: position.z
+        };
+        uiControls.updateModelPositionUI(state.modelPosition);
+    };
+    
+    setupLighting();
     setupEventListeners();
     
-    // Start animation
     cameraController.updatePosition();
     animate();
 }
@@ -63,7 +68,10 @@ function setupLighting() {
 function setupEventListeners() {
     const canvas = state.renderer.domElement;
     
-    canvas.addEventListener('mousedown', (e) => cameraController.onMouseDown(e));
+    canvas.addEventListener('mousedown', (e) => {
+        cameraController.onMouseDown(e);
+        handleCanvasClick(e);
+    });
     canvas.addEventListener('mousemove', (e) => cameraController.onMouseMove(e));
     canvas.addEventListener('mouseup', () => cameraController.onMouseUp());
     canvas.addEventListener('wheel', (e) => cameraController.onMouseWheel(e));
@@ -77,6 +85,39 @@ function setupEventListeners() {
     uiControls.setupEventListeners();
     
     window.addEventListener('resize', onWindowResize);
+}
+
+function handleCanvasClick(event) {
+    if (!state.currentModel) return;
+    
+    const mouse = new THREE.Vector2();
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, state.camera);
+    
+    // 기즈모 핸들 체크
+    const gizmoIntersects = raycaster.intersectObjects(transformControls.handles, true);
+    if (gizmoIntersects.length > 0) {
+        return; // 기즈모 클릭 시 아무것도 안함
+    }
+    
+    // 모델 클릭 체크
+    const modelObjects = [];
+    state.currentModel.traverse((child) => {
+        if (child.isMesh) {
+            modelObjects.push(child);
+        }
+    });
+    
+    const modelIntersects = raycaster.intersectObjects(modelObjects, true);
+    
+    if (modelIntersects.length > 0) {
+        transformControls.attach(state.currentModel); // 모델 클릭 시 기즈모 표시
+    } else {
+        transformControls.detach(); // 빈 공간 클릭 시 기즈모 숨김
+    }
 }
 
 async function handleFileUpload(event) {
@@ -110,17 +151,36 @@ function loadModel(model) {
     }
     state.currentModel = model;
     state.scene.add(state.currentModel);
+    
+    state.modelPosition = {
+        x: model.position.x,
+        y: model.position.y,
+        z: model.position.z
+    };
+    
     state.currentModel.scale.set(state.modelScale, state.modelScale, state.modelScale);
+    
+    uiControls.updateModelPositionUI(state.modelPosition);
+    uiControls.updateLightDirection();
+    
+    // 기즈모 표시
+    transformControls.attach(state.currentModel);
 }
 
 function takeScreenshot() {
     const originalBg = state.scene.background;
     state.scene.background = null;
     
+    // 기즈모 숨김
+    const wasVisible = transformControls.visible;
+    transformControls.visible = false;
+    
     renderManager.render();
     
     const dataURL = state.renderer.domElement.toDataURL('image/png', 1.0);
+    
     state.scene.background = originalBg;
+    transformControls.visible = wasVisible;
     
     const link = document.createElement('a');
     link.download = `webtoon-3d-${Date.now()}.png`;
@@ -138,6 +198,7 @@ function onWindowResize() {
 function animate() {
     requestAnimationFrame(animate);
     cameraController.handleMovement();
+    transformControls.update();
     renderManager.render();
 }
 

@@ -10,7 +10,7 @@ export class CameraController {
         this.cameraRotationY = 0;
         this.cameraTarget = new THREE.Vector3(0, 0, 0);
         
-        this.keys = { w: false, a: false, s: false, d: false, q: false, e: false };
+        this.keys = { w: false, a: false, s: false, d: false, q: false, e: false, g: false };
         this.moveSpeed = 0.1;
     }
 

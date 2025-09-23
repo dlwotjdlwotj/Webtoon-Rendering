@@ -82,11 +82,17 @@ export class RenderManager {
             this.state.renderer.clear();
             this.state.renderer.render(this.state.scene, this.state.camera);
             
-            // Depth pass
+            // 기즈모 depth test 제외
+            const gizmoObjects = [];
             this.state.scene.traverse((child) => {
                 if (child.isMesh) {
-                    child.userData.currentMaterial = child.material;
-                    child.material = this.depthMaterial;
+                    if (child.userData.isGizmo) {
+                        child.visible = false;
+                        gizmoObjects.push(child);
+                    } else {
+                        child.userData.currentMaterial = child.material;
+                        child.material = this.depthMaterial;
+                    }
                 }
             });
             
@@ -102,12 +108,17 @@ export class RenderManager {
             this.state.renderer.clear();
             this.state.renderer.render(this.state.scene, this.state.camera);
             
-            // Restore materials
+            // Restore materials and visibility
             this.state.scene.traverse((child) => {
                 if (child.isMesh && child.userData.currentMaterial) {
                     child.material = child.userData.currentMaterial;
                     delete child.userData.currentMaterial;
                 }
+            });
+            
+            // 기즈모 다시 보이게
+            gizmoObjects.forEach(obj => {
+                obj.visible = true;
             });
             
             // Final composite
