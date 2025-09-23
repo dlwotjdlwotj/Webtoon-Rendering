@@ -149,11 +149,36 @@ button:hover {
     transition: all 0.3s ease;
 }
 
-
 .screenshot-btn:hover {
     background: linear-gradient(135deg, #357abd, #2a5f91);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(74, 158, 255, 0.4);
+}
+
+.transform-icons {
+    position: absolute;
+    top: 20px;
+    left: 380px;
+    z-index: 100;
+    display: flex;
+    gap: 6px;
+    background: rgba(0,0,0,0.7);
+    padding: 6px;
+    border-radius: 6px;
+    backdrop-filter: blur(10px);
+}
+
+.icon-indicator {
+    width: 20px;
+    height: 20px;
+    color: #4a9eff;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.icon-indicator:hover {
+    transform: scale(1.1);
+    color: #5ab0ff;
 }
 
 .transform-panel {
