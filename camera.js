@@ -27,12 +27,7 @@ export class CameraController {
         const deltaX = event.clientX - this.lastMouseX;
         const deltaY = event.clientY - this.lastMouseY;
         
-        if (this.mouseButton === 0) {
-            this.cameraRotationY += deltaX * 0.01;
-            this.cameraRotationX += deltaY * 0.01;
-            this.cameraRotationX = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.cameraRotationX));
-            this.updatePosition();
-        } else if (this.mouseButton === 2) {
+        if (this.mouseButton === 2) {  // 우클릭만 회전
             const rotationSpeed = 0.005;
             
             const direction = new THREE.Vector3();

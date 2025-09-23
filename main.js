@@ -90,6 +90,8 @@ function setupEventListeners() {
 function handleCanvasClick(event) {
     if (!state.currentModel) return;
     
+    if (event.button === 2) return; // 우클릭 기즈모 유지
+    
     const mouse = new THREE.Vector2();
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -114,9 +116,11 @@ function handleCanvasClick(event) {
     const modelIntersects = raycaster.intersectObjects(modelObjects, true);
     
     if (modelIntersects.length > 0) {
-        transformControls.attach(state.currentModel); // 모델 클릭 시 기즈모 표시
+        // 모델 클릭 시 기즈모 표시
+        transformControls.attach(state.currentModel);
     } else {
-        transformControls.detach(); // 빈 공간 클릭 시 기즈모 숨김
+        // 빈 공간 클릭 시 기즈모 숨김
+        transformControls.detach();
     }
 }
 
