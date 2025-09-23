@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>웹툰 스타일 3D 뷰어 - GLB/OBJ 지원</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="container">
+        <div id="controls">
+            <div id="controls-header" onclick="toggleControls()">
+                <button id="toggle-btn">◀</button>
+            </div>
+            
+            <div id="controls-content">
+                <div class="control-group">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <button class="screenshot-btn" onclick="takeScreenshot()">저장</button>
+                        
+                        <div class="file-input-wrapper">
+                            <input type="file" id="modelFileInput" accept=".glb,.gltf,.obj">
+                            <label for="modelFileInput" class="file-input-label">업로드</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>크기: <span id="modelScaleValue">1.0</span>x</label>
+                    <input type="range" id="modelScale" min="0.1" max="5.0" step="0.1" value="1.0" oninput="updateModelScale()">
+                </div>
+
+                <div class="control-group">
+                    <label>밝기: <span id="brightnessValue">1.8</span></label>
+                    <input type="range" id="brightness" min="0.3" max="3.0" step="0.1" value="1.8" oninput="updateBrightness()">
+                </div>
+                
+                <div class="control-group">
+                    <label>선 두께: <span id="outlineValue">0.5</span></label>
+                    <input type="range" id="outlineThickness" min="0.1" max="3.0" step="0.1" value="0.5" oninput="updateOutlineThickness()">
+                </div>
+                
+                <div class="control-group">
+                    <label>선 강도: <span id="depthSensitivityValue">5.0</span></label>
+                    <input type="range" id="depthSensitivity" min="1.0" max="50.0" step="0.5" value="5.0" oninput="updateDepthSensitivity()">
+                </div>
+                
+                <div class="control-group">
+                    <label>그림자 강도: <span id="shadowIntensityValue">0.3</span></label>
+                    <input type="range" id="shadowIntensity" min="0.0" max="0.8" step="0.1" value="0.3">
+                </div>
+                
+                <div class="angle-group">
+                    <h4 style="margin: 0 0 10px 0; color: #4a9eff;">빛 방향 (Rotation)</h4>
+                    
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 80px;">
+                            <label style="font-size: 12px;">X: <span id="lightRotXValue">30</span>°</label>
+                            <input type="number" id="lightRotX" min="-180" max="180" step="5" value="30" style="width: 100%; padding: 4px; border-radius: 3px; border: 1px solid #555; background: #333; color: white;">
+                        </div>
+                        <div style="flex: 1; min-width: 80px;">
+                            <label style="font-size: 12px;">Y: <span id="lightRotYValue">45</span>°</label>
+                            <input type="number" id="lightRotY" min="-180" max="180" step="5" value="45" style="width: 100%; padding: 4px; border-radius: 3px; border: 1px solid #555; background: #333; color: white;">
+                        </div>
+                        <div style="flex: 1; min-width: 80px;">
+                            <label style="font-size: 12px;">Z: <span id="lightRotZValue">0</span>°</label>
+                            <input type="number" id="lightRotZ" min="-180" max="180" step="5" value="0" style="width: 100%; padding: 4px; border-radius: 3px; border: 1px solid #555; background: #333; color: white;">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <button onclick="toggleWebtoonMode()" id="webtoonBtn">웹툰 모드: ON</button>
+                    <button onclick="toggleShadows()" id="shadowBtn">그림자: ON</button>
+                </div>
+                
+                <div class="control-group">
+                    <label>이동 속도: <span id="moveSpeedValue">0.1</span></label>
+                    <input type="range" id="moveSpeedSlider" min="0.01" max="1.0" step="0.01" value="0.1">
+                </div>
+                
+                <div class="control-group">
+                    <button onclick="resetCamera()">카메라 리셋</button>
+                    <button onclick="resetLightDirection()">빛 방향 리셋</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>
