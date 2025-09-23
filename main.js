@@ -161,13 +161,17 @@ function loadModel(model) {
         y: model.position.y,
         z: model.position.z
     };
+
+    state.modelRotation = { x: 0, y: 0, z: 0 };
     
     state.currentModel.scale.set(state.modelScale, state.modelScale, state.modelScale);
-    
+
     uiControls.updateModelPositionUI(state.modelPosition);
+    uiControls.updateModelRotationUI(state.modelRotation);
+
     uiControls.updateLightDirection();
     
-    // 기즈모 표시
+    // 이동 기즈모 표시
     transformControls.attach(state.currentModel);
 }
 

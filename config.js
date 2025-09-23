@@ -35,5 +35,6 @@ export class AppState {
         this.modelScale = CONFIG.defaults.modelScale;
         this.lightRotation = { ...CONFIG.defaults.lightRotation };
         this.modelPosition = { x: 0, y: 0, z: 0 };
+        this.modelRotation = { x: 0, y: 0, z: 0 };
     }
 }

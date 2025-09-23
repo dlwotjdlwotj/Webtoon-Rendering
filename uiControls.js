@@ -19,6 +19,11 @@ export class UIControls {
         document.getElementById('modelPosX').addEventListener('input', () => this.updateModelPosition());
         document.getElementById('modelPosY').addEventListener('input', () => this.updateModelPosition());
         document.getElementById('modelPosZ').addEventListener('input', () => this.updateModelPosition());
+
+        // 오브젝트 회전 입력 리스너
+        document.getElementById('modelRotX').addEventListener('input', () => this.updateModelRotation());
+        document.getElementById('modelRotY').addEventListener('input', () => this.updateModelRotation());
+        document.getElementById('modelRotZ').addEventListener('input', () => this.updateModelRotation());
     }
 
     updateModelPosition() {
@@ -45,6 +50,32 @@ export class UIControls {
         document.getElementById('modelPosXValue').textContent = position.x.toFixed(1);
         document.getElementById('modelPosYValue').textContent = position.y.toFixed(1);
         document.getElementById('modelPosZValue').textContent = position.z.toFixed(1);
+    }
+    
+    updateModelRotation() {
+        this.state.modelRotation.x = parseFloat(document.getElementById('modelRotX').value) || 0;
+        this.state.modelRotation.y = parseFloat(document.getElementById('modelRotY').value) || 0;
+        this.state.modelRotation.z = parseFloat(document.getElementById('modelRotZ').value) || 0;
+        
+        this.updateModelRotationUI(this.state.modelRotation);
+        
+        if (this.state.currentModel) {
+            this.state.currentModel.rotation.set(
+                this.state.modelRotation.x * Math.PI / 180,
+                this.state.modelRotation.y * Math.PI / 180,
+                this.state.modelRotation.z * Math.PI / 180
+            );
+        }
+    }
+
+    updateModelRotationUI(rotation) {
+        document.getElementById('modelRotX').value = rotation.x;
+        document.getElementById('modelRotY').value = rotation.y;
+        document.getElementById('modelRotZ').value = rotation.z;
+        
+        document.getElementById('modelRotXValue').textContent = rotation.x;
+        document.getElementById('modelRotYValue').textContent = rotation.y;
+        document.getElementById('modelRotZValue').textContent = rotation.z;
     }
 
     updateModelScale() {
