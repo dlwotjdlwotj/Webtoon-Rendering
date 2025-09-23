@@ -87,6 +87,9 @@ export class CameraController {
     handleMovement() {
         if (!Object.values(this.keys).some(pressed => pressed)) return;
         
+        // 우클릭일 때만 이동
+        if (!this.mouseDown || this.mouseButton !== 2) return;
+        
         const forward = new THREE.Vector3();
         const right = new THREE.Vector3();
         const up = new THREE.Vector3(0, 1, 0);
