@@ -8,8 +8,12 @@ export class TransformControls extends THREE.Object3D {
         this.enabled = true;
         this.dragging = false;
         
-        this.gizmo = new THREE.Group();
-        this.add(this.gizmo);
+        this.mode = 'position'; // 'position' or 'rotation'
+        
+        this.positionGizmo = new THREE.Group();
+        this.rotationGizmo = new THREE.Group();
+        this.add(this.positionGizmo);
+        this.add(this.rotationGizmo);
         
         this.raycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
@@ -19,14 +23,17 @@ export class TransformControls extends THREE.Object3D {
         this.prevIntersect = new THREE.Vector3();
         
         this.onPositionChange = null;
+        this.onRotationChange = null;
         
-        this.createGizmo();
+        this.createPositionGizmo();
+        this.createRotationGizmo();
         this.setupEventListeners();
         
         this.visible = false;
+        this.updateGizmoVisibility();
     }
     
-    createGizmo() {
+    createPositionGizmo() {
         const arrowGeometry = new THREE.CylinderGeometry(0, 0.08, 0.25, 12);
         const shaftGeometry = new THREE.CylinderGeometry(0.04, 0.04, 0.8, 12);
         
@@ -135,11 +142,65 @@ export class TransformControls extends THREE.Object3D {
         zxPlane.userData.isGizmo = true;
         zxPlane.renderOrder = 998;
         
-        this.gizmo.add(xArrow, xShaft, yArrow, yShaft, zArrow, zShaft);
-        this.gizmo.add(xyPlane, yzPlane, zxPlane);
+        this.positionGizmo.add(xArrow, xShaft, yArrow, yShaft, zArrow, zShaft);
+        this.positionGizmo.add(xyPlane, yzPlane, zxPlane);
         
-        this.handles = [xArrow, xShaft, yArrow, yShaft, zArrow, zShaft, xyPlane, yzPlane, zxPlane];
+        this.positionHandles = [xArrow, xShaft, yArrow, yShaft, zArrow, zShaft, xyPlane, yzPlane, zxPlane];
+    }
+
+    createRotationGizmo() {
+        const torusGeometry = new THREE.TorusGeometry(1.0, 0.04, 12, 32);
+        
+        const xMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xff0000, 
+            depthTest: false, 
+            depthWrite: false
+        });
+        const yMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0x00ff00, 
+            depthTest: false, 
+            depthWrite: false
+        });
+        const zMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0x0000ff, 
+            depthTest: false, 
+            depthWrite: false
+        });
+        
+        // X축 회전 고리 (빨강) - YZ 평면
+        const xTorus = new THREE.Mesh(torusGeometry, xMaterial);
+        xTorus.rotation.y = Math.PI / 2;
+        xTorus.userData.axis = 'x';
+        xTorus.userData.isGizmo = true;
+        xTorus.renderOrder = 999;
+        
+        // Y축 회전 고리 (초록) - XZ 평면
+        const yTorus = new THREE.Mesh(torusGeometry, yMaterial);
+        yTorus.rotation.x = Math.PI / 2;
+        yTorus.userData.axis = 'y';
+        yTorus.userData.isGizmo = true;
+        yTorus.renderOrder = 999;
+        
+        // Z축 회전 고리 (파랑) - XY 평면
+        const zTorus = new THREE.Mesh(torusGeometry, zMaterial);
+        zTorus.userData.axis = 'z';
+        zTorus.userData.isGizmo = true;
+        zTorus.renderOrder = 999;
+        
+        this.rotationGizmo.add(xTorus, yTorus, zTorus);
+        this.rotationHandles = [xTorus, yTorus, zTorus];
+    }
+
+    updateGizmoVisibility() {
+        this.positionGizmo.visible = (this.mode === 'position');
+        this.rotationGizmo.visible = (this.mode === 'rotation');
+    }
+
+    setMode(mode) {
+        this.mode = mode;
+        this.updateGizmoVisibility();
         this.selectedAxis = null;
+        this.dragging = false;
     }
     
     attach(object) {
@@ -176,37 +237,55 @@ export class TransformControls extends THREE.Object3D {
         this.mouse.y = -(event.clientY / this.domElement.clientHeight) * 2 + 1;
         
         this.raycaster.setFromCamera(this.mouse, this.camera);
-        const intersects = this.raycaster.intersectObjects(this.handles, true);
+        
+        const currentHandles = this.mode === 'position' ? this.positionHandles : this.rotationHandles;
+        const intersects = this.raycaster.intersectObjects(currentHandles, true);
         
         if (intersects.length > 0) {
             this.selectedAxis = intersects[0].object.userData.axis;
             this.dragging = true;
             
-            const planeNormal = new THREE.Vector3();
+            // 마우스 위치 저장
+            this.prevMouse.copy(this.mouse);
             
-            if (this.selectedAxis === 'x') {
-                planeNormal.set(0, 0, 1); // YZ 평면
-            } else if (this.selectedAxis === 'y') {
-                planeNormal.set(0, 0, 1); // XZ 평면
-            } else if (this.selectedAxis === 'z') {
-                planeNormal.set(0, 1, 0); // XY 평면
-            } else if (this.selectedAxis === 'xy') {
-                planeNormal.set(0, 0, 1); // XY 평면 이동
-            } else if (this.selectedAxis === 'yz') {
-                planeNormal.set(1, 0, 0); // YZ 평면 이동
-            } else if (this.selectedAxis === 'zx') {
-                planeNormal.set(0, 1, 0); // ZX 평면 이동
-            }
-            
-            this.plane.setFromNormalAndCoplanarPoint(planeNormal, this.position);
-            
-            if (this.raycaster.ray.intersectPlane(this.plane, this.planeIntersect)) {
-                this.prevIntersect.copy(this.planeIntersect);
+            if (this.mode === 'position') {
+                this.handlePositionStart();
+            } else {
+                this.handleRotationStart();
             }
             
             event.stopPropagation();
             event.preventDefault();
         }
+    }
+
+    handlePositionStart() {
+        const planeNormal = new THREE.Vector3();
+        
+        if (this.selectedAxis === 'x') {
+            planeNormal.set(0, 0, 1); // YZ 평면
+        } else if (this.selectedAxis === 'y') {
+            planeNormal.set(0, 0, 1); // XZ 평면
+        } else if (this.selectedAxis === 'z') {
+            planeNormal.set(0, 1, 0); // XY 평면
+        } else if (this.selectedAxis === 'xy') {
+            planeNormal.set(0, 0, 1); // XY 평면 이동
+        } else if (this.selectedAxis === 'yz') {
+            planeNormal.set(1, 0, 0); // YZ 평면 이동
+        } else if (this.selectedAxis === 'zx') {
+            planeNormal.set(0, 1, 0); // ZX 평면 이동
+        }
+        
+        this.plane.setFromNormalAndCoplanarPoint(planeNormal, this.position);
+        
+        if (this.raycaster.ray.intersectPlane(this.plane, this.planeIntersect)) {
+            this.prevIntersect.copy(this.planeIntersect);
+        }
+    }
+
+    handleRotationStart() {
+        // 간단한 스크린 기반 회전을 사용
+        // 마우스 이동량으로 직접 회전
     }
     
     onPointerMove(event) {
@@ -215,8 +294,18 @@ export class TransformControls extends THREE.Object3D {
         this.mouse.x = (event.clientX / this.domElement.clientWidth) * 2 - 1;
         this.mouse.y = -(event.clientY / this.domElement.clientHeight) * 2 + 1;
         
-        this.raycaster.setFromCamera(this.mouse, this.camera);
+        if (this.mode === 'position') {
+            this.raycaster.setFromCamera(this.mouse, this.camera);
+            this.handlePositionMove();
+        } else {
+            this.handleRotationMove();
+        }
         
+        event.stopPropagation();
+        event.preventDefault();
+    }
+
+    handlePositionMove() {
         if (this.raycaster.ray.intersectPlane(this.plane, this.planeIntersect)) {
             const delta = new THREE.Vector3().subVectors(this.planeIntersect, this.prevIntersect);
             
@@ -244,9 +333,33 @@ export class TransformControls extends THREE.Object3D {
                 this.onPositionChange(this.position);
             }
         }
+    }
+
+    handleRotationMove() {
+        // 마우스 이동량 계산
+        const deltaX = this.mouse.x - this.prevMouse.x;
+        const deltaY = this.mouse.y - this.prevMouse.y;
         
-        event.stopPropagation();
-        event.preventDefault();
+        // 회전 속도 조절
+        const rotationSpeed = 3.0;
+        
+        if (this.selectedAxis === 'x') {
+            // X축 회전 - 마우스 Y 이동으로 제어
+            this.object.rotateX(-deltaY * rotationSpeed);
+        } else if (this.selectedAxis === 'y') {
+            // Y축 회전 - 마우스 X 이동으로 제어
+            this.object.rotateY(deltaX * rotationSpeed);
+        } else if (this.selectedAxis === 'z') {
+            // Z축 회전 - 마우스 X+Y 이동으로 제어 (대각선 회전)
+            const delta = (deltaX + deltaY) * 0.5;
+            this.object.rotateZ(delta * rotationSpeed);
+        }
+        
+        this.prevMouse.copy(this.mouse);
+        
+        if (this.onRotationChange) {
+            this.onRotationChange(this.object.rotation);
+        }
     }
     
     onPointerUp(event) {
@@ -262,8 +375,14 @@ export class TransformControls extends THREE.Object3D {
         if (this.visible && this.camera) {
             const distance = this.camera.position.distanceTo(this.position);
             const scaleFactor = distance * 0.1;
-            this.gizmo.scale.set(scaleFactor, scaleFactor, scaleFactor);
+            this.positionGizmo.scale.set(scaleFactor, scaleFactor, scaleFactor);
+            this.rotationGizmo.scale.set(scaleFactor, scaleFactor, scaleFactor);
         }
+    }
+    
+    // 핸들 접근자 (호환성을 위해)
+    get handles() {
+        return this.mode === 'position' ? this.positionHandles : this.rotationHandles;
     }
     
     setEnabled(enabled) {

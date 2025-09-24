@@ -204,3 +204,26 @@ button:hover {
     color: #4a9eff;
     font-size: 16px;
 }
+
+.icon-indicator {
+    width: 20px;
+    height: 20px;
+    color: #4a9eff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 4px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.icon-indicator:hover {
+    transform: scale(1.1);
+    color: #5ab0ff;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.icon-indicator.active {
+    color: #5ab0ff;
+    background: rgba(74, 158, 255, 0.3);
+    box-shadow: 0 0 8px rgba(74, 158, 255, 0.4);
+}

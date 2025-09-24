@@ -35,6 +35,7 @@ function init() {
     renderManager.setupRenderTargets();
     
     cameraController = new CameraController(state.camera);
+    
     uiControls = new UIControls(state, cameraController, renderManager);
     
     transformControls = new TransformControls(state.camera, state.renderer.domElement);
@@ -47,6 +48,15 @@ function init() {
             z: position.z
         };
         uiControls.updateModelPositionUI(state.modelPosition);
+    };
+    
+    transformControls.onRotationChange = (rotation) => {
+        state.modelRotation = {
+            x: rotation.x * 180 / Math.PI,
+            y: rotation.y * 180 / Math.PI,
+            z: rotation.z * 180 / Math.PI
+        };
+        uiControls.updateModelRotationUI(state.modelRotation);
     };
     
     setupLighting();
@@ -68,29 +78,104 @@ function setupLighting() {
 function setupEventListeners() {
     const canvas = state.renderer.domElement;
     
+    // 캔버스 이벤트 리스너 - 카메라 컨트롤이 우선
     canvas.addEventListener('mousedown', (e) => {
+        // 우클릭은 항상 카메라 컨트롤러가 먼저 처리
         cameraController.onMouseDown(e);
-        handleCanvasClick(e);
+        
+        // 좌클릭만 모델 선택 처리
+        if (e.button === 0) {
+            handleCanvasClick(e);
+        }
     });
+    
     canvas.addEventListener('mousemove', (e) => cameraController.onMouseMove(e));
     canvas.addEventListener('mouseup', () => cameraController.onMouseUp());
     canvas.addEventListener('wheel', (e) => cameraController.onMouseWheel(e));
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     
-    document.addEventListener('keydown', (e) => cameraController.onKeyDown(e));
+    // 키보드 이벤트 처리
+    document.addEventListener('keydown', (e) => {
+        if (document.activeElement.tagName === 'INPUT') return;
+        
+        const key = e.key.toLowerCase();
+        
+        // 우클릭 중이면 모든 키를 카메라 이동으로 처리
+        if (cameraController.isRightMouseDown()) {
+            cameraController.onKeyDown(e);
+            return;
+        }
+        
+        // W키와 E키 처리 - 모델이 있고 우클릭 중이 아닐 때만
+        if (state.currentModel) {
+            if (key === 'q') {
+                switchToPositionMode();
+                e.preventDefault();
+                return;
+            }
+            if (key === 'w') {
+                switchToRotationMode();
+                e.preventDefault();
+                return;
+            }
+        }
+        
+        // 나머지 키들은 카메라 컨트롤러로 전달
+        cameraController.onKeyDown(e);
+    });
+    
     document.addEventListener('keyup', (e) => cameraController.onKeyUp(e));
     
     document.getElementById('modelFileInput').addEventListener('change', handleFileUpload);
     
     uiControls.setupEventListeners();
     
+    // 기즈모 모드 전환 아이콘 이벤트 리스너
+    const transformIcons = document.querySelectorAll('.icon-indicator');
+    transformIcons.forEach((icon, index) => {
+        icon.addEventListener('click', () => {
+            if (state.currentModel && transformControls.visible) {
+                if (index === 0) {
+                    switchToPositionMode();
+                } else {
+                    switchToRotationMode();
+                }
+            }
+        });
+    });
+    
+    // 초기 position 모드 아이콘 활성화
+    transformIcons[0]?.classList.add('active');
+    
     window.addEventListener('resize', onWindowResize);
+}
+
+function switchToPositionMode() {
+    transformControls.setMode('position');
+    updateIconState(0);
+}
+
+function switchToRotationMode() {
+    transformControls.setMode('rotation');
+    updateIconState(1);
+}
+
+function updateIconState(activeIndex) {
+    const transformIcons = document.querySelectorAll('.icon-indicator');
+    transformIcons.forEach((ic, index) => {
+        if (index === activeIndex) {
+            ic.classList.add('active');
+        } else {
+            ic.classList.remove('active');
+        }
+    });
 }
 
 function handleCanvasClick(event) {
     if (!state.currentModel) return;
     
-    if (event.button === 2) return; // 우클릭 기즈모 유지
+    // 좌클릭만 처리 (우클릭은 이미 카메라 컨트롤러에서 처리됨)
+    if (event.button !== 0) return;
     
     const mouse = new THREE.Vector2();
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -181,8 +266,9 @@ function loadModel(model) {
 
     uiControls.updateLightDirection();
     
-    // 이동 기즈모 표시 및 패널 표시
+    // 기즈모 표시 및 패널 표시
     transformControls.attach(state.currentModel);
+    switchToPositionMode(); // 기본값은 position 모드
     showTransformPanel();
 }
 

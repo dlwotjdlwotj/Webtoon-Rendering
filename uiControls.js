@@ -46,10 +46,6 @@ export class UIControls {
         document.getElementById('modelPosX').value = position.x.toFixed(1);
         document.getElementById('modelPosY').value = position.y.toFixed(1);
         document.getElementById('modelPosZ').value = position.z.toFixed(1);
-        
-        document.getElementById('modelPosXValue').textContent = position.x.toFixed(1);
-        document.getElementById('modelPosYValue').textContent = position.y.toFixed(1);
-        document.getElementById('modelPosZValue').textContent = position.z.toFixed(1);
     }
     
     updateModelRotation() {
@@ -72,10 +68,6 @@ export class UIControls {
         document.getElementById('modelRotX').value = rotation.x;
         document.getElementById('modelRotY').value = rotation.y;
         document.getElementById('modelRotZ').value = rotation.z;
-        
-        document.getElementById('modelRotXValue').textContent = rotation.x;
-        document.getElementById('modelRotYValue').textContent = rotation.y;
-        document.getElementById('modelRotZValue').textContent = rotation.z;
     }
 
     updateModelScale() {

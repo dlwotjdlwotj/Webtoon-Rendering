@@ -9,6 +9,7 @@ export class CameraController {
         this.cameraRotationX = 0;
         this.cameraRotationY = 0;
         this.cameraTarget = new THREE.Vector3(0, 0, 0);
+        this.onGizmoModeChange = null;
         
         this.keys = { w: false, a: false, s: false, d: false, q: false, e: false, g: false };
         this.moveSpeed = 0.1;
@@ -19,6 +20,11 @@ export class CameraController {
         this.mouseButton = event.button;
         this.lastMouseX = event.clientX;
         this.lastMouseY = event.clientY;
+        
+        // 우클릭이면 카메라 컨트롤을 위해 이벤트 전파를 중단
+        if (event.button === 2) {
+            event.stopPropagation();
+        }
     }
 
     onMouseMove(event) {
@@ -27,7 +33,7 @@ export class CameraController {
         const deltaX = event.clientX - this.lastMouseX;
         const deltaY = event.clientY - this.lastMouseY;
         
-        if (this.mouseButton === 2) {  // 우클릭만 회전
+        if (this.mouseButton === 2) {  // 우클릭일 때 카메라 회전
             const rotationSpeed = 0.005;
             
             const direction = new THREE.Vector3();
@@ -46,6 +52,9 @@ export class CameraController {
             
             this.camera.lookAt(this.cameraTarget);
             this.syncWithCamera();
+            
+            // 우클릭 드래그 시 이벤트 전파 중단
+            event.stopPropagation();
         }
         
         this.lastMouseX = event.clientX;
@@ -64,12 +73,17 @@ export class CameraController {
         this.cameraDistance = Math.max(0.001, Math.min(10000, this.cameraDistance));
         
         this.updatePosition();
+        
+        // 휠 이벤트도 카메라 컨트롤 우선
+        event.stopPropagation();
     }
 
     onKeyDown(event) {
         if (document.activeElement.tagName === 'INPUT') return;
         
         const key = event.key.toLowerCase();
+        
+        // 이동 키들만 처리 (기즈모 모드 변경은 main.js에서 이미 처리됨)
         if (this.keys.hasOwnProperty(key)) {
             this.keys[key] = true;
             event.preventDefault();
@@ -152,5 +166,10 @@ export class CameraController {
 
     setMoveSpeed(speed) {
         this.moveSpeed = speed;
+    }
+
+    // 우클릭 상태 확인 메서드 추가
+    isRightMouseDown() {
+        return this.mouseDown && this.mouseButton === 2;
     }
 }
