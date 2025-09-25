@@ -8,12 +8,14 @@ export class TransformControls extends THREE.Object3D {
         this.enabled = true;
         this.dragging = false;
         
-        this.mode = 'position'; // 'position' or 'rotation'
+        this.mode = 'position'; // 'position', 'rotation', 'scale'
         
         this.positionGizmo = new THREE.Group();
         this.rotationGizmo = new THREE.Group();
+        this.scaleGizmo = new THREE.Group();
         this.add(this.positionGizmo);
         this.add(this.rotationGizmo);
+        this.add(this.scaleGizmo);
         
         this.raycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
@@ -24,14 +26,16 @@ export class TransformControls extends THREE.Object3D {
         
         // 다중 선택 지원을 위한 변수들
         this.state = null;
-        this.initialPositions = new Map(); // 드래그 시작 시 모든 모델의 초기 위치
+        this.initialPositions = new Map(); // 드래그 시작 시 모든 모델의 초기 위치/스케일
         this.pivotPoint = new THREE.Vector3(); // 회전 중심점
         
         this.onPositionChange = null;
         this.onRotationChange = null;
+        this.onScaleChange = null;
         
         this.createPositionGizmo();
         this.createRotationGizmo();
+        this.createScaleGizmo();
         this.setupEventListeners();
         
         this.visible = false;
@@ -201,9 +205,85 @@ export class TransformControls extends THREE.Object3D {
         this.rotationHandles = [xTorus, yTorus, zTorus];
     }
 
+    createScaleGizmo() {
+        const cubeGeometry = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+        const shaftGeometry = new THREE.CylinderGeometry(0.03, 0.03, 0.8, 12);
+        
+        const xMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xff0000, 
+            depthTest: false, 
+            depthWrite: false
+        });
+        const yMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0x00ff00, 
+            depthTest: false, 
+            depthWrite: false
+        });
+        const zMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0x0000ff, 
+            depthTest: false, 
+            depthWrite: false
+        });
+        const uniformMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xffffff, 
+            depthTest: false, 
+            depthWrite: false
+        });
+        
+        // X축 스케일 핸들 (빨강)
+        const xCube = new THREE.Mesh(cubeGeometry, xMaterial);
+        const xShaft = new THREE.Mesh(shaftGeometry, xMaterial);
+        xCube.position.set(1, 0, 0);
+        xShaft.position.set(0.5, 0, 0);
+        xShaft.rotation.z = -Math.PI / 2;
+        xCube.userData.axis = 'x';
+        xShaft.userData.axis = 'x';
+        xCube.userData.isGizmo = true;
+        xShaft.userData.isGizmo = true;
+        xCube.renderOrder = 999;
+        xShaft.renderOrder = 999;
+        
+        // Y축 스케일 핸들 (초록)
+        const yCube = new THREE.Mesh(cubeGeometry, yMaterial);
+        const yShaft = new THREE.Mesh(shaftGeometry, yMaterial);
+        yCube.position.set(0, 1, 0);
+        yShaft.position.set(0, 0.5, 0);
+        yCube.userData.axis = 'y';
+        yShaft.userData.axis = 'y';
+        yCube.userData.isGizmo = true;
+        yShaft.userData.isGizmo = true;
+        yCube.renderOrder = 999;
+        yShaft.renderOrder = 999;
+        
+        // Z축 스케일 핸들 (파랑)
+        const zCube = new THREE.Mesh(cubeGeometry, zMaterial);
+        const zShaft = new THREE.Mesh(shaftGeometry, zMaterial);
+        zCube.position.set(0, 0, 1);
+        zShaft.position.set(0, 0, 0.5);
+        zShaft.rotation.x = Math.PI / 2;
+        zCube.userData.axis = 'z';
+        zShaft.userData.axis = 'z';
+        zCube.userData.isGizmo = true;
+        zShaft.userData.isGizmo = true;
+        zCube.renderOrder = 999;
+        zShaft.renderOrder = 999;
+        
+        // 균등 스케일 핸들 (중앙, 흰색)
+        const uniformCube = new THREE.Mesh(cubeGeometry, uniformMaterial);
+        uniformCube.position.set(0, 0, 0);
+        uniformCube.scale.set(1.2, 1.2, 1.2); // 조금 더 크게
+        uniformCube.userData.axis = 'uniform';
+        uniformCube.userData.isGizmo = true;
+        uniformCube.renderOrder = 999;
+        
+        this.scaleGizmo.add(xCube, xShaft, yCube, yShaft, zCube, zShaft, uniformCube);
+        this.scaleHandles = [xCube, xShaft, yCube, yShaft, zCube, zShaft, uniformCube];
+    }
+
     updateGizmoVisibility() {
         this.positionGizmo.visible = (this.mode === 'position');
         this.rotationGizmo.visible = (this.mode === 'rotation');
+        this.scaleGizmo.visible = (this.mode === 'scale');
     }
 
     setMode(mode) {
@@ -250,7 +330,7 @@ export class TransformControls extends THREE.Object3D {
         
         this.raycaster.setFromCamera(this.mouse, this.camera);
         
-        const currentHandles = this.mode === 'position' ? this.positionHandles : this.rotationHandles;
+        const currentHandles = this.getCurrentHandles();
         const intersects = this.raycaster.intersectObjects(currentHandles, true);
         
         if (intersects.length > 0) {
@@ -262,12 +342,23 @@ export class TransformControls extends THREE.Object3D {
             
             if (this.mode === 'position') {
                 this.handlePositionStart();
-            } else {
+            } else if (this.mode === 'rotation') {
                 this.handleRotationStart();
+            } else if (this.mode === 'scale') {
+                this.handleScaleStart();
             }
             
             event.stopPropagation();
             event.preventDefault();
+        }
+    }
+
+    getCurrentHandles() {
+        switch (this.mode) {
+            case 'position': return this.positionHandles;
+            case 'rotation': return this.rotationHandles;
+            case 'scale': return this.scaleHandles;
+            default: return [];
         }
     }
 
@@ -336,6 +427,22 @@ export class TransformControls extends THREE.Object3D {
             }
         }
     }
+
+    handleScaleStart() {
+        // 다중 선택된 모델들의 초기 스케일 저장
+        if (this.state) {
+            this.initialPositions.clear();
+            const selectedModels = this.state.getSelectedModels();
+            for (let i = 0; i < selectedModels.length; i++) {
+                const model = selectedModels[i];
+                this.initialPositions.set(model.id, {
+                    scale: typeof model.scale === 'number' ? 
+                        { x: model.scale, y: model.scale, z: model.scale } :
+                        { ...model.scale }
+                });
+            }
+        }
+    }
     
     onPointerMove(event) {
         if (!this.dragging || !this.object) return;
@@ -346,8 +453,10 @@ export class TransformControls extends THREE.Object3D {
         if (this.mode === 'position') {
             this.raycaster.setFromCamera(this.mouse, this.camera);
             this.handlePositionMove();
-        } else {
+        } else if (this.mode === 'rotation') {
             this.handleRotationMove();
+        } else if (this.mode === 'scale') {
+            this.handleScaleMove();
         }
         
         event.stopPropagation();
@@ -443,6 +552,70 @@ export class TransformControls extends THREE.Object3D {
             this.onRotationChange(this.object.rotation);
         }
     }
+
+    handleScaleMove() {
+        // 마우스 이동량 계산
+        const deltaX = this.mouse.x - this.prevMouse.x;
+        const deltaY = this.mouse.y - this.prevMouse.y;
+        
+        const scaleSpeed = 2.0;
+        const scaleDelta = -deltaY * scaleSpeed; // Y축 이동으로 스케일 조절
+        
+        // 선택된 모든 모델들에 스케일 적용
+        if (this.state) {
+            const selectedModels = this.state.getSelectedModels();
+            
+            for (let i = 0; i < selectedModels.length; i++) {
+                const model = selectedModels[i];
+                const initialScale = this.initialPositions.get(model.id).scale;
+                let newScale;
+                
+                if (this.selectedAxis === 'uniform') {
+                    // 균등 스케일
+                    const factor = 1 + scaleDelta;
+                    newScale = {
+                        x: Math.max(0.1, initialScale.x * factor),
+                        y: Math.max(0.1, initialScale.y * factor),
+                        z: Math.max(0.1, initialScale.z * factor)
+                    };
+                } else if (this.selectedAxis === 'x') {
+                    // X축만 스케일
+                    const factor = 1 + scaleDelta;
+                    newScale = {
+                        x: Math.max(0.1, initialScale.x * factor),
+                        y: initialScale.y,
+                        z: initialScale.z
+                    };
+                } else if (this.selectedAxis === 'y') {
+                    // Y축만 스케일
+                    const factor = 1 + scaleDelta;
+                    newScale = {
+                        x: initialScale.x,
+                        y: Math.max(0.1, initialScale.y / factor),
+                        z: initialScale.z
+                    };
+                } else if (this.selectedAxis === 'z') {
+                    // Z축만 스케일
+                    const factor = 1 + scaleDelta;
+                    newScale = {
+                        x: initialScale.x,
+                        y: initialScale.y,
+                        z: Math.max(0.1, initialScale.z * factor)
+                    };
+                }
+                
+                this.state.updateModelScale(model.id, newScale);
+            }
+        }
+        
+        // UI 업데이트를 위한 콜백
+        if (this.onScaleChange && this.state.lastSelectedModel) {
+            const lastSelected = this.state.getLastSelectedModel();
+            if (lastSelected) {
+                this.onScaleChange(lastSelected.scale);
+            }
+        }
+    }
     
     onPointerUp(event) {
         this.dragging = false;
@@ -462,12 +635,13 @@ export class TransformControls extends THREE.Object3D {
             const scaleFactor = distance * 0.1;
             this.positionGizmo.scale.set(scaleFactor, scaleFactor, scaleFactor);
             this.rotationGizmo.scale.set(scaleFactor, scaleFactor, scaleFactor);
+            this.scaleGizmo.scale.set(scaleFactor, scaleFactor, scaleFactor);
         }
     }
     
     // 핸들 접근자 (호환성을 위해)
     get handles() {
-        return this.mode === 'position' ? this.positionHandles : this.rotationHandles;
+        return this.getCurrentHandles();
     }
     
     setEnabled(enabled) {

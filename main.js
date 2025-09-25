@@ -64,6 +64,12 @@ function init() {
         }
     };
     
+    transformControls.onScaleChange = (scale) => {
+        if (state.lastSelectedModel) {
+            uiControls.updateModelScaleUI(scale);
+        }
+    };
+    
     setupLighting();
     setupEventListeners();
     
@@ -126,7 +132,7 @@ function setupEventListeners() {
             return;
         }
         
-        // Q키와 W키 처리 - 모델이 있고 우클릭 중이 아닐 때만
+        // Q, W, E 키로 기즈모 모드 전환 - 모델이 있고 우클릭 중이 아닐 때만
         if (state.lastSelectedModel) {
             if (key === 'q') {
                 switchToPositionMode();
@@ -135,6 +141,11 @@ function setupEventListeners() {
             }
             if (key === 'w') {
                 switchToRotationMode();
+                e.preventDefault();
+                return;
+            }
+            if (key === 'e') {
+                switchToScaleMode();
                 e.preventDefault();
                 return;
             }
@@ -163,6 +174,8 @@ function setupEventListeners() {
                     switchToPositionMode();
                 } else if (index === 1) {
                     switchToRotationMode();
+                } else if (index === 2) {
+                    switchToScaleMode();
                 }
             }
         });
@@ -189,6 +202,14 @@ function switchToRotationMode() {
         transformControls.setMode('rotation');
         updateIconState(1);
         console.log('Rotation 모드로 변경됨'); // 디버그용
+    }
+}
+
+function switchToScaleMode() {
+    if (transformControls && state.selectedModels.size > 0) {
+        transformControls.setMode('scale');
+        updateIconState(2);
+        console.log('Scale 모드로 변경됨'); // 디버그용
     }
 }
 
@@ -277,8 +298,10 @@ function updateSelectionUI() {
             // 현재 모드에 따라 아이콘 상태 업데이트
             if (transformControls.mode === 'position') {
                 updateIconState(0);
-            } else {
+            } else if (transformControls.mode === 'rotation') {
                 updateIconState(1);
+            } else if (transformControls.mode === 'scale') {
+                updateIconState(2);
             }
         }
     } else {
