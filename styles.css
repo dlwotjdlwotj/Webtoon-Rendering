@@ -155,10 +155,10 @@ button:hover {
     box-shadow: 0 4px 12px rgba(74, 158, 255, 0.4);
 }
 
-/* 모델 목록 패널 (오른쪽) */
+/* 모델 목록 패널 (오른쪽) - 위치 조정 */
 .model-list-panel {
     position: absolute;
-    top: 350px; /* transform-panel 아래에 위치 */
+    top: 480px; /* transform-panel 아래로 더 이동 (350px -> 480px) */
     right: 20px;
     z-index: 100;
     background: rgba(0,0,0,0.7);
@@ -166,7 +166,7 @@ button:hover {
     border-radius: 10px;
     backdrop-filter: blur(10px);
     width: 240px;
-    max-height: 400px;
+    max-height: 300px; /* 높이 제한 추가 */
     overflow: hidden;
 }
 
@@ -181,8 +181,9 @@ button:hover {
     color: #4a9eff;
     font-size: 16px;
 }
+
 .model-list {
-    max-height: 300px;
+    max-height: 220px; /* 스크롤 영역 높이 조정 */
     overflow-y: auto;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 5px;
@@ -301,6 +302,8 @@ button:hover {
     border-radius: 10px;
     backdrop-filter: blur(10px);
     width: 240px;
+    max-height: 420px; /* Transform Panel 최대 높이 설정 */
+    overflow-y: auto; /* 스크롤 추가 */
 }
 
 .transform-header {
@@ -338,23 +341,27 @@ button:hover {
 
 /* 스크롤바 스타일링 */
 .model-list::-webkit-scrollbar,
-#controls-content::-webkit-scrollbar {
+#controls-content::-webkit-scrollbar,
+.transform-panel::-webkit-scrollbar {
     width: 6px;
 }
 
 .model-list::-webkit-scrollbar-track,
-#controls-content::-webkit-scrollbar-track {
+#controls-content::-webkit-scrollbar-track,
+.transform-panel::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 3px;
 }
 
 .model-list::-webkit-scrollbar-thumb,
-#controls-content::-webkit-scrollbar-thumb {
+#controls-content::-webkit-scrollbar-thumb,
+.transform-panel::-webkit-scrollbar-thumb {
     background: rgba(74, 158, 255, 0.5);
     border-radius: 3px;
 }
 
 .model-list::-webkit-scrollbar-thumb:hover,
-#controls-content::-webkit-scrollbar-thumb:hover {
+#controls-content::-webkit-scrollbar-thumb:hover,
+.transform-panel::-webkit-scrollbar-thumb:hover {
     background: rgba(74, 158, 255, 0.7);
 }

@@ -45,7 +45,7 @@ export class AppState {
             filename: filename || `Model ${this.modelCounter}`,
             position: { x: 0, y: 0, z: 0 },
             rotation: { x: 0, y: 0, z: 0 },
-            scale: CONFIG.defaults.modelScale
+            scale: { x: CONFIG.defaults.modelScale, y: CONFIG.defaults.modelScale, z: CONFIG.defaults.modelScale }
         };
         
         this.models.set(modelId, modelData);
@@ -241,8 +241,15 @@ export class AppState {
     updateModelScale(modelId, scale) {
         const modelData = this.models.get(modelId);
         if (modelData) {
-            modelData.scale = scale;
-            modelData.object.scale.set(scale, scale, scale);
+            // scale이 숫자인 경우 (기존 호환성)
+            if (typeof scale === 'number') {
+                modelData.scale = { x: scale, y: scale, z: scale };
+                modelData.object.scale.set(scale, scale, scale);
+            } else {
+                // scale이 객체인 경우 (새로운 개별 스케일)
+                modelData.scale = { ...scale };
+                modelData.object.scale.set(scale.x, scale.y, scale.z);
+            }
         }
     }
 

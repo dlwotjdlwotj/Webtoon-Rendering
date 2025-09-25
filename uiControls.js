@@ -24,6 +24,11 @@ export class UIControls {
         document.getElementById('modelRotX').addEventListener('input', () => this.updateModelRotationFromUI());
         document.getElementById('modelRotY').addEventListener('input', () => this.updateModelRotationFromUI());
         document.getElementById('modelRotZ').addEventListener('input', () => this.updateModelRotationFromUI());
+
+        // 개별 스케일 입력 리스너
+        document.getElementById('modelScaleX').addEventListener('input', () => this.updateModelScaleFromUI());
+        document.getElementById('modelScaleY').addEventListener('input', () => this.updateModelScaleFromUI());
+        document.getElementById('modelScaleZ').addEventListener('input', () => this.updateModelScaleFromUI());
     }
 
     updateModelPositionFromUI() {
@@ -62,14 +67,52 @@ export class UIControls {
         document.getElementById('modelRotZ').value = rotation.z.toFixed(0);
     }
 
+    updateModelScaleFromUI() {
+        if (!this.state.lastSelectedModel) return;
+        
+        const scale = {
+            x: parseFloat(document.getElementById('modelScaleX').value) || 1.0,
+            y: parseFloat(document.getElementById('modelScaleY').value) || 1.0,
+            z: parseFloat(document.getElementById('modelScaleZ').value) || 1.0
+        };
+        
+        this.state.updateModelScale(this.state.lastSelectedModel, scale);
+        
+        // 기존 스케일 컨트롤과 동기화 (평균값 사용)
+        const avgScale = (scale.x + scale.y + scale.z) / 3;
+        document.getElementById('modelScale').value = avgScale;
+        document.getElementById('modelScaleValue').textContent = avgScale.toFixed(1);
+    }
+
+    updateModelScaleUI(scale) {
+        // scale이 숫자인 경우 (기존 호환성)
+        if (typeof scale === 'number') {
+            document.getElementById('modelScaleX').value = scale.toFixed(1);
+            document.getElementById('modelScaleY').value = scale.toFixed(1);
+            document.getElementById('modelScaleZ').value = scale.toFixed(1);
+        } else {
+            // scale이 객체인 경우
+            document.getElementById('modelScaleX').value = scale.x.toFixed(1);
+            document.getElementById('modelScaleY').value = scale.y.toFixed(1);
+            document.getElementById('modelScaleZ').value = scale.z.toFixed(1);
+        }
+    }
+
     updateSelectedModelUI(modelData) {
         document.getElementById('selectedModelName').textContent = modelData.filename;
         this.updateModelPositionUI(modelData.position);
         this.updateModelRotationUI(modelData.rotation);
         
-        // 스케일 슬라이더 업데이트
-        document.getElementById('modelScale').value = modelData.scale;
-        document.getElementById('modelScaleValue').textContent = modelData.scale.toFixed(1);
+        // 스케일 UI 업데이트
+        this.updateModelScaleUI(modelData.scale);
+        
+        // 기존 스케일 슬라이더 업데이트
+        const avgScale = typeof modelData.scale === 'number' ? 
+            modelData.scale : 
+            (modelData.scale.x + modelData.scale.y + modelData.scale.z) / 3;
+            
+        document.getElementById('modelScale').value = avgScale;
+        document.getElementById('modelScaleValue').textContent = avgScale.toFixed(1);
     }
 
     updateModelScale() {
@@ -78,7 +121,13 @@ export class UIControls {
         const scale = parseFloat(document.getElementById('modelScale').value);
         document.getElementById('modelScaleValue').textContent = scale.toFixed(1);
         
+        // 기존 방식으로 균등 스케일 적용
         this.state.updateModelScale(this.state.lastSelectedModel, scale);
+        
+        // Transform Panel의 스케일 UI도 동기화
+        document.getElementById('modelScaleX').value = scale;
+        document.getElementById('modelScaleY').value = scale;
+        document.getElementById('modelScaleZ').value = scale;
     }
 
     updateBrightness() {

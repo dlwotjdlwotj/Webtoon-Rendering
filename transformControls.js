@@ -426,7 +426,7 @@ export class TransformControls extends THREE.Object3D {
             deltaRotation.y = deltaX * rotationSpeed;
         } else if (this.selectedAxis === 'z') {
             // Z축 회전 - 다른 축과 동일한 방식으로 제어
-            deltaRotation.z = deltaY * rotationSpeed;
+            deltaRotation.z = -deltaY * rotationSpeed;
         }
         
         // 선택된 모든 모델들에 회전 적용
