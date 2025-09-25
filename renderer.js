@@ -76,26 +76,45 @@ export class RenderManager {
     }
 
     render() {
-        if (this.state.webtoonMode && this.state.currentModel) {
+        const hasModels = this.state.getAllModels().length > 0;
+        
+        if (this.state.webtoonMode && hasModels) {
             // Color pass
             this.state.renderer.setRenderTarget(this.colorTarget);
             this.state.renderer.clear();
             this.state.renderer.render(this.state.scene, this.state.camera);
             
-            // 기즈모 depth test 제외
+            // 기즈모와 모델 메시 구분하여 depth pass 준비
             const gizmoObjects = [];
+            const modelMeshes = [];
+            
+            // 모든 오브젝트를 순회하여 기즈모와 모델 메시 분류
             this.state.scene.traverse((child) => {
                 if (child.isMesh) {
                     if (child.userData.isGizmo) {
                         child.visible = false;
                         gizmoObjects.push(child);
                     } else {
-                        child.userData.currentMaterial = child.material;
-                        child.material = this.depthMaterial;
+                        // 모델의 메시인지 확인
+                        let isModelMesh = false;
+                        this.state.getAllModels().forEach(modelData => {
+                            modelData.object.traverse((modelChild) => {
+                                if (modelChild === child) {
+                                    isModelMesh = true;
+                                }
+                            });
+                        });
+                        
+                        if (isModelMesh) {
+                            child.userData.currentMaterial = child.material;
+                            child.material = this.depthMaterial;
+                            modelMeshes.push(child);
+                        }
                     }
                 }
             });
             
+            // Depth material uniforms 업데이트
             this.depthMaterial.uniforms.cameraNear.value = this.state.camera.near;
             this.depthMaterial.uniforms.cameraFar.value = this.state.camera.far;
             
@@ -104,15 +123,16 @@ export class RenderManager {
                 this.outlineMaterial.uniforms.cameraFar.value = this.state.camera.far;
             }
             
+            // Depth pass
             this.state.renderer.setRenderTarget(this.depthTarget);
             this.state.renderer.clear();
             this.state.renderer.render(this.state.scene, this.state.camera);
             
             // Restore materials and visibility
-            this.state.scene.traverse((child) => {
-                if (child.isMesh && child.userData.currentMaterial) {
-                    child.material = child.userData.currentMaterial;
-                    delete child.userData.currentMaterial;
+            modelMeshes.forEach(mesh => {
+                if (mesh.userData.currentMaterial) {
+                    mesh.material = mesh.userData.currentMaterial;
+                    delete mesh.userData.currentMaterial;
                 }
             });
             
@@ -126,6 +146,7 @@ export class RenderManager {
             this.state.renderer.clear();
             this.state.renderer.render(this.outlineScene, this.outlineCamera);
         } else {
+            // Standard rendering without outline effect
             this.state.renderer.setRenderTarget(null);
             this.state.renderer.render(this.state.scene, this.state.camera);
         }

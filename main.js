@@ -39,24 +39,29 @@ function init() {
     uiControls = new UIControls(state, cameraController, renderManager);
     
     transformControls = new TransformControls(state.camera, state.renderer.domElement);
+    transformControls.setState(state); // state 참조 설정
     state.scene.add(transformControls);
     
     transformControls.onPositionChange = (position) => {
-        state.modelPosition = {
-            x: position.x,
-            y: position.y,
-            z: position.z
-        };
-        uiControls.updateModelPositionUI(state.modelPosition);
+        if (state.lastSelectedModel) {
+            state.updateModelPosition(state.lastSelectedModel, {
+                x: position.x,
+                y: position.y,
+                z: position.z
+            });
+            uiControls.updateModelPositionUI(state.getLastSelectedModel().position);
+        }
     };
     
     transformControls.onRotationChange = (rotation) => {
-        state.modelRotation = {
-            x: rotation.x * 180 / Math.PI,
-            y: rotation.y * 180 / Math.PI,
-            z: rotation.z * 180 / Math.PI
-        };
-        uiControls.updateModelRotationUI(state.modelRotation);
+        if (state.lastSelectedModel) {
+            state.updateModelRotation(state.lastSelectedModel, {
+                x: rotation.x * 180 / Math.PI,
+                y: rotation.y * 180 / Math.PI,
+                z: rotation.z * 180 / Math.PI
+            });
+            uiControls.updateModelRotationUI(state.getLastSelectedModel().rotation);
+        }
     };
     
     setupLighting();
@@ -78,7 +83,7 @@ function setupLighting() {
 function setupEventListeners() {
     const canvas = state.renderer.domElement;
     
-    // 캔버스 이벤트 리스너 - 카메라 컨트롤이 우선
+    // 캔버스 이벤트 리스너 - 카메라 컨트롤이 우선 
     canvas.addEventListener('mousedown', (e) => {
         // 우클릭은 항상 카메라 컨트롤러가 먼저 처리
         cameraController.onMouseDown(e);
@@ -100,14 +105,29 @@ function setupEventListeners() {
         
         const key = e.key.toLowerCase();
         
+        // Ctrl+A로 모든 모델 선택
+        if (e.ctrlKey && key === 'a') {
+            state.selectAllModels();
+            updateSelectionUI();
+            e.preventDefault();
+            return;
+        }
+        
+        // Delete 키로 선택된 모델들 삭제
+        if (e.key === 'Delete' && state.selectedModels.size > 0) {
+            deleteSelectedModels();
+            e.preventDefault();
+            return;
+        }
+        
         // 우클릭 중이면 모든 키를 카메라 이동으로 처리
         if (cameraController.isRightMouseDown()) {
             cameraController.onKeyDown(e);
             return;
         }
         
-        // W키와 E키 처리 - 모델이 있고 우클릭 중이 아닐 때만
-        if (state.currentModel) {
+        // Q키와 W키 처리 - 모델이 있고 우클릭 중이 아닐 때만
+        if (state.lastSelectedModel) {
             if (key === 'q') {
                 switchToPositionMode();
                 e.preventDefault();
@@ -130,14 +150,18 @@ function setupEventListeners() {
     
     uiControls.setupEventListeners();
     
-    // 기즈모 모드 전환 아이콘 이벤트 리스너
+    // 기즈모 모드 전환 아이콘 이벤트 리스너 - 수정된 부분
     const transformIcons = document.querySelectorAll('.icon-indicator');
     transformIcons.forEach((icon, index) => {
-        icon.addEventListener('click', () => {
-            if (state.currentModel && transformControls.visible) {
+        icon.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // 선택된 모델이 있을 때만 작동
+            if (state.selectedModels.size > 0) {
                 if (index === 0) {
                     switchToPositionMode();
-                } else {
+                } else if (index === 1) {
                     switchToRotationMode();
                 }
             }
@@ -145,35 +169,40 @@ function setupEventListeners() {
     });
     
     // 초기 position 모드 아이콘 활성화
-    transformIcons[0]?.classList.add('active');
+    if (transformIcons.length > 0) {
+        transformIcons[0].classList.add('active');
+    }
     
     window.addEventListener('resize', onWindowResize);
 }
 
 function switchToPositionMode() {
-    transformControls.setMode('position');
-    updateIconState(0);
+    if (transformControls && state.selectedModels.size > 0) {
+        transformControls.setMode('position');
+        updateIconState(0);
+        console.log('Position 모드로 변경됨'); // 디버그용
+    }
 }
 
 function switchToRotationMode() {
-    transformControls.setMode('rotation');
-    updateIconState(1);
+    if (transformControls && state.selectedModels.size > 0) {
+        transformControls.setMode('rotation');
+        updateIconState(1);
+        console.log('Rotation 모드로 변경됨'); // 디버그용
+    }
 }
 
 function updateIconState(activeIndex) {
     const transformIcons = document.querySelectorAll('.icon-indicator');
-    transformIcons.forEach((ic, index) => {
+    transformIcons.forEach((icon, index) => {
+        icon.classList.remove('active');
         if (index === activeIndex) {
-            ic.classList.add('active');
-        } else {
-            ic.classList.remove('active');
+            icon.classList.add('active');
         }
     });
 }
 
 function handleCanvasClick(event) {
-    if (!state.currentModel) return;
-    
     // 좌클릭만 처리 (우클릭은 이미 카메라 컨트롤러에서 처리됨)
     if (event.button !== 0) return;
     
@@ -190,25 +219,78 @@ function handleCanvasClick(event) {
         return; // 기즈모 클릭 시 아무것도 안함
     }
     
-    // 모델 클릭 체크
+    // 모든 모델 오브젝트 수집
     const modelObjects = [];
-    state.currentModel.traverse((child) => {
-        if (child.isMesh) {
-            modelObjects.push(child);
-        }
+    const modelMap = new Map(); // 오브젝트 -> 모델ID 매핑
+    
+    state.getAllModels().forEach(modelData => {
+        modelData.object.traverse((child) => {
+            if (child.isMesh) {
+                modelObjects.push(child);
+                modelMap.set(child, modelData.id);
+            }
+        });
     });
     
     const modelIntersects = raycaster.intersectObjects(modelObjects, true);
     
     if (modelIntersects.length > 0) {
-        // 모델 클릭 시 기즈모 표시 및 패널 표시
-        transformControls.attach(state.currentModel);
-        showTransformPanel();
+        // 모델 클릭 시 해당 모델 선택
+        const clickedObject = modelIntersects[0].object;
+        const modelId = modelMap.get(clickedObject);
+        
+        const multiSelect = event.shiftKey;
+        selectModel(modelId, multiSelect);
     } else {
-        // 빈 공간 클릭 시 기즈모 숨김 및 패널 숨김
+        // 빈 공간 클릭 시 선택 해제 (Shift 클릭이 아닐 때만)
+        if (!event.shiftKey) {
+            deselectAllModels();
+        }
+    }
+}
+
+function selectModel(modelId, multiSelect = false) {
+    state.selectModel(modelId, multiSelect);
+    updateSelectionUI();
+}
+
+function deselectAllModels() {
+    state.deselectAllModels();
+    updateSelectionUI();
+}
+
+function updateSelectionUI() {
+    const lastSelected = state.getLastSelectedModel();
+    
+    if (lastSelected && state.selectedModels.size > 0) {
+        // 선택된 모델들의 중심점에 기즈모 위치 설정
+        const center = state.getSelectionCenter();
+        transformControls.position.copy(center);
+        
+        transformControls.attach(lastSelected.object);
+        showTransformPanel();
+        uiControls.updateSelectedModelUI(lastSelected);
+        
+        // 기즈모가 보이는 상태에서 아이콘 활성화
+        const transformIcons = document.querySelectorAll('.icon-indicator');
+        if (transformIcons.length > 0) {
+            // 현재 모드에 따라 아이콘 상태 업데이트
+            if (transformControls.mode === 'position') {
+                updateIconState(0);
+            } else {
+                updateIconState(1);
+            }
+        }
+    } else {
         transformControls.detach();
         hideTransformPanel();
+        
+        // 모든 아이콘 비활성화
+        const transformIcons = document.querySelectorAll('.icon-indicator');
+        transformIcons.forEach(icon => icon.classList.remove('active'));
     }
+    
+    uiControls.updateModelListUI();
 }
 
 function showTransformPanel() {
@@ -230,7 +312,7 @@ async function handleFileUpload(event) {
         reader.onload = async (e) => {
             const loader = new GLBLoader(state);
             const model = await loader.load(e.target.result);
-            loadModel(model);
+            loadModel(model, file.name);
         };
         reader.readAsArrayBuffer(file);
     } else if (ext === 'obj') {
@@ -238,38 +320,41 @@ async function handleFileUpload(event) {
         reader.onload = (e) => {
             const loader = new OBJLoader(state);
             const model = loader.load(e.target.result);
-            loadModel(model);
+            loadModel(model, file.name);
         };
         reader.readAsText(file);
     }
+    
+    // 파일 입력 초기화 (같은 파일 다시 선택 가능)
+    event.target.value = '';
 }
 
-function loadModel(model) {
-    if (state.currentModel) {
-        state.scene.remove(state.currentModel);
-    }
-    state.currentModel = model;
-    state.scene.add(state.currentModel);
+function loadModel(model, filename) {
+    const modelId = state.addModel(model, filename);
     
-    state.modelPosition = {
-        x: model.position.x,
-        y: model.position.y,
-        z: model.position.z
-    };
-
-    state.modelRotation = { x: 0, y: 0, z: 0 };
+    // 모델 기본 스케일 적용
+    model.scale.set(CONFIG.defaults.modelScale, CONFIG.defaults.modelScale, CONFIG.defaults.modelScale);
     
-    state.currentModel.scale.set(state.modelScale, state.modelScale, state.modelScale);
-
-    uiControls.updateModelPositionUI(state.modelPosition);
-    uiControls.updateModelRotationUI(state.modelRotation);
-
+    // 새로 추가된 모델 자동 선택
+    selectModel(modelId, false);
+    
     uiControls.updateLightDirection();
+    uiControls.updateModelListUI();
     
-    // 기즈모 표시 및 패널 표시
-    transformControls.attach(state.currentModel);
     switchToPositionMode(); // 기본값은 position 모드
-    showTransformPanel();
+}
+
+function deleteSelectedModels() {
+    if (state.selectedModels.size > 0) {
+        state.deleteSelectedModels();
+        updateSelectionUI();
+        uiControls.updateModelListUI();
+    }
+}
+
+// 호환성을 위한 단일 삭제 함수
+function deleteSelectedModel() {
+    deleteSelectedModels();
 }
 
 function takeScreenshot() {
@@ -318,5 +403,12 @@ window.updateDepthSensitivity = () => uiControls.updateDepthSensitivity();
 window.updateModelScale = () => uiControls.updateModelScale();
 window.updateBrightness = () => uiControls.updateBrightness();
 window.takeScreenshot = takeScreenshot;
+window.deleteSelectedModel = deleteSelectedModel;
+window.selectModel = selectModel;
+
+// Global objects for UI access
+window.state = state;
+window.transformControls = transformControls;
+window.uiControls = uiControls;
 
 document.addEventListener('DOMContentLoaded', init);

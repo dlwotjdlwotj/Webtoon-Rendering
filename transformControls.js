@@ -22,6 +22,11 @@ export class TransformControls extends THREE.Object3D {
         this.planeIntersect = new THREE.Vector3();
         this.prevIntersect = new THREE.Vector3();
         
+        // 다중 선택 지원을 위한 변수들
+        this.state = null;
+        this.initialPositions = new Map(); // 드래그 시작 시 모든 모델의 초기 위치
+        this.pivotPoint = new THREE.Vector3(); // 회전 중심점
+        
         this.onPositionChange = null;
         this.onRotationChange = null;
         
@@ -31,6 +36,11 @@ export class TransformControls extends THREE.Object3D {
         
         this.visible = false;
         this.updateGizmoVisibility();
+    }
+    
+    // State 참조 설정
+    setState(state) {
+        this.state = state;
     }
     
     createPositionGizmo() {
@@ -205,8 +215,10 @@ export class TransformControls extends THREE.Object3D {
     
     attach(object) {
         this.object = object;
-        if (object) {
-            this.position.copy(object.position);
+        if (object && this.state) {
+            // 선택된 모든 모델의 중심점으로 기즈모 위치 설정
+            const center = this.state.getSelectionCenter();
+            this.position.copy(center);
             this.visible = true;
         } else {
             this.visible = false;
@@ -260,6 +272,20 @@ export class TransformControls extends THREE.Object3D {
     }
 
     handlePositionStart() {
+        // 다중 선택된 모델들의 초기 위치 저장
+        if (this.state) {
+            this.initialPositions.clear();
+            const selectedModels = this.state.getSelectedModels();
+            for (let i = 0; i < selectedModels.length; i++) {
+                const model = selectedModels[i];
+                this.initialPositions.set(model.id, {
+                    x: model.position.x,
+                    y: model.position.y,
+                    z: model.position.z
+                });
+            }
+        }
+        
         const planeNormal = new THREE.Vector3();
         
         if (this.selectedAxis === 'x') {
@@ -284,8 +310,31 @@ export class TransformControls extends THREE.Object3D {
     }
 
     handleRotationStart() {
-        // 간단한 스크린 기반 회전을 사용
-        // 마우스 이동량으로 직접 회전
+        // 회전 중심점을 기즈모 위치로 설정
+        this.pivotPoint.copy(this.position);
+        
+        // 다중 선택된 모델들의 초기 상태 저장 (더 정확하게)
+        if (this.state) {
+            this.initialPositions.clear();
+            const selectedModels = this.state.getSelectedModels();
+            for (let i = 0; i < selectedModels.length; i++) {
+                const model = selectedModels[i];
+                const object = model.object;
+                
+                // 현재 월드 위치와 쿼터니언 저장
+                const worldPos = new THREE.Vector3();
+                const worldQuat = new THREE.Quaternion();
+                object.getWorldPosition(worldPos);
+                object.getWorldQuaternion(worldQuat);
+                
+                this.initialPositions.set(model.id, {
+                    worldPosition: worldPos.clone(),
+                    worldQuaternion: worldQuat.clone(),
+                    localPosition: { ...model.position },
+                    localRotation: { ...model.rotation }
+                });
+            }
+        }
     }
     
     onPointerMove(event) {
@@ -309,6 +358,7 @@ export class TransformControls extends THREE.Object3D {
         if (this.raycaster.ray.intersectPlane(this.plane, this.planeIntersect)) {
             const delta = new THREE.Vector3().subVectors(this.planeIntersect, this.prevIntersect);
             
+            // 기즈모 위치 업데이트
             if (this.selectedAxis === 'x') {
                 this.position.x += delta.x;
             } else if (this.selectedAxis === 'y') {
@@ -326,7 +376,31 @@ export class TransformControls extends THREE.Object3D {
                 this.position.x += delta.x;
             }
             
-            this.object.position.copy(this.position);
+            // 선택된 모든 모델들에 동일한 이동량 적용
+            if (this.state) {
+                const moveDelta = new THREE.Vector3();
+                if (this.selectedAxis === 'x') {
+                    moveDelta.set(delta.x, 0, 0);
+                } else if (this.selectedAxis === 'y') {
+                    moveDelta.set(0, delta.y, 0);
+                } else if (this.selectedAxis === 'z') {
+                    moveDelta.set(0, 0, delta.z);
+                } else if (this.selectedAxis === 'xy') {
+                    moveDelta.set(delta.x, delta.y, 0);
+                } else if (this.selectedAxis === 'yz') {
+                    moveDelta.set(0, delta.y, delta.z);
+                } else if (this.selectedAxis === 'zx') {
+                    moveDelta.set(delta.x, 0, delta.z);
+                }
+                
+                this.state.moveSelectedModels(moveDelta);
+            }
+            
+            // 개별 오브젝트도 업데이트 (메인 모델)
+            if (this.object) {
+                this.object.position.copy(this.position);
+            }
+            
             this.prevIntersect.copy(this.planeIntersect);
             
             if (this.onPositionChange) {
@@ -340,24 +414,32 @@ export class TransformControls extends THREE.Object3D {
         const deltaX = this.mouse.x - this.prevMouse.x;
         const deltaY = this.mouse.y - this.prevMouse.y;
         
-        // 회전 속도 조절
-        const rotationSpeed = 3.0;
+        const rotationSpeed = 1.5;
+        
+        const deltaRotation = { x: 0, y: 0, z: 0 };
         
         if (this.selectedAxis === 'x') {
             // X축 회전 - 마우스 Y 이동으로 제어
-            this.object.rotateX(-deltaY * rotationSpeed);
+            deltaRotation.x = -deltaY * rotationSpeed;
         } else if (this.selectedAxis === 'y') {
             // Y축 회전 - 마우스 X 이동으로 제어
-            this.object.rotateY(deltaX * rotationSpeed);
+            deltaRotation.y = deltaX * rotationSpeed;
         } else if (this.selectedAxis === 'z') {
-            // Z축 회전 - 마우스 X+Y 이동으로 제어 (대각선 회전)
-            const delta = (deltaX + deltaY) * 0.5;
-            this.object.rotateZ(delta * rotationSpeed);
+            // Z축 회전 - 다른 축과 동일한 방식으로 제어
+            deltaRotation.z = deltaY * rotationSpeed;
         }
+        
+        // 선택된 모든 모델들에 회전 적용
+        if (this.state) {
+            this.state.rotateSelectedModels(deltaRotation, this.pivotPoint);
+        }
+        
+        // 메인 객체는 별도로 회전하지 않음 (이미 rotateSelectedModels에서 처리됨)
         
         this.prevMouse.copy(this.mouse);
         
-        if (this.onRotationChange) {
+        // UI 업데이트를 위한 콜백 (마지막 선택된 객체 기준)
+        if (this.onRotationChange && this.object) {
             this.onRotationChange(this.object.rotation);
         }
     }
@@ -368,8 +450,11 @@ export class TransformControls extends THREE.Object3D {
     }
     
     update() {
-        if (this.object && !this.dragging) {
-            this.position.copy(this.object.position);
+        // 드래그 중이 아닐 때만 위치 업데이트
+        if (!this.dragging && this.state && this.visible) {
+            // 선택된 모델들의 중심점으로 기즈모 위치 업데이트
+            const center = this.state.getSelectionCenter();
+            this.position.copy(center);
         }
         
         if (this.visible && this.camera) {

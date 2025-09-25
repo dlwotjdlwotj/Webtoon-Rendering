@@ -16,30 +16,26 @@ export class UIControls {
         document.getElementById('brightness').addEventListener('input', () => this.updateBrightness());
         
         // 오브젝트 위치 입력 리스너
-        document.getElementById('modelPosX').addEventListener('input', () => this.updateModelPosition());
-        document.getElementById('modelPosY').addEventListener('input', () => this.updateModelPosition());
-        document.getElementById('modelPosZ').addEventListener('input', () => this.updateModelPosition());
+        document.getElementById('modelPosX').addEventListener('input', () => this.updateModelPositionFromUI());
+        document.getElementById('modelPosY').addEventListener('input', () => this.updateModelPositionFromUI());
+        document.getElementById('modelPosZ').addEventListener('input', () => this.updateModelPositionFromUI());
 
         // 오브젝트 회전 입력 리스너
-        document.getElementById('modelRotX').addEventListener('input', () => this.updateModelRotation());
-        document.getElementById('modelRotY').addEventListener('input', () => this.updateModelRotation());
-        document.getElementById('modelRotZ').addEventListener('input', () => this.updateModelRotation());
+        document.getElementById('modelRotX').addEventListener('input', () => this.updateModelRotationFromUI());
+        document.getElementById('modelRotY').addEventListener('input', () => this.updateModelRotationFromUI());
+        document.getElementById('modelRotZ').addEventListener('input', () => this.updateModelRotationFromUI());
     }
 
-    updateModelPosition() {
-        this.state.modelPosition.x = parseFloat(document.getElementById('modelPosX').value) || 0;
-        this.state.modelPosition.y = parseFloat(document.getElementById('modelPosY').value) || 0;
-        this.state.modelPosition.z = parseFloat(document.getElementById('modelPosZ').value) || 0;
+    updateModelPositionFromUI() {
+        if (!this.state.lastSelectedModel) return;
         
-        this.updateModelPositionUI(this.state.modelPosition);
+        const position = {
+            x: parseFloat(document.getElementById('modelPosX').value) || 0,
+            y: parseFloat(document.getElementById('modelPosY').value) || 0,
+            z: parseFloat(document.getElementById('modelPosZ').value) || 0
+        };
         
-        if (this.state.currentModel) {
-            this.state.currentModel.position.set(
-                this.state.modelPosition.x,
-                this.state.modelPosition.y,
-                this.state.modelPosition.z
-            );
-        }
+        this.state.updateModelPosition(this.state.lastSelectedModel, position);
     }
 
     updateModelPositionUI(position) {
@@ -48,46 +44,58 @@ export class UIControls {
         document.getElementById('modelPosZ').value = position.z.toFixed(1);
     }
     
-    updateModelRotation() {
-        this.state.modelRotation.x = parseFloat(document.getElementById('modelRotX').value) || 0;
-        this.state.modelRotation.y = parseFloat(document.getElementById('modelRotY').value) || 0;
-        this.state.modelRotation.z = parseFloat(document.getElementById('modelRotZ').value) || 0;
+    updateModelRotationFromUI() {
+        if (!this.state.lastSelectedModel) return;
         
-        this.updateModelRotationUI(this.state.modelRotation);
+        const rotation = {
+            x: parseFloat(document.getElementById('modelRotX').value) || 0,
+            y: parseFloat(document.getElementById('modelRotY').value) || 0,
+            z: parseFloat(document.getElementById('modelRotZ').value) || 0
+        };
         
-        if (this.state.currentModel) {
-            this.state.currentModel.rotation.set(
-                this.state.modelRotation.x * Math.PI / 180,
-                this.state.modelRotation.y * Math.PI / 180,
-                this.state.modelRotation.z * Math.PI / 180
-            );
-        }
+        this.state.updateModelRotation(this.state.lastSelectedModel, rotation);
     }
 
     updateModelRotationUI(rotation) {
-        document.getElementById('modelRotX').value = rotation.x;
-        document.getElementById('modelRotY').value = rotation.y;
-        document.getElementById('modelRotZ').value = rotation.z;
+        document.getElementById('modelRotX').value = rotation.x.toFixed(0);
+        document.getElementById('modelRotY').value = rotation.y.toFixed(0);
+        document.getElementById('modelRotZ').value = rotation.z.toFixed(0);
+    }
+
+    updateSelectedModelUI(modelData) {
+        document.getElementById('selectedModelName').textContent = modelData.filename;
+        this.updateModelPositionUI(modelData.position);
+        this.updateModelRotationUI(modelData.rotation);
+        
+        // 스케일 슬라이더 업데이트
+        document.getElementById('modelScale').value = modelData.scale;
+        document.getElementById('modelScaleValue').textContent = modelData.scale.toFixed(1);
     }
 
     updateModelScale() {
-        this.state.modelScale = parseFloat(document.getElementById('modelScale').value);
-        document.getElementById('modelScaleValue').textContent = this.state.modelScale.toFixed(1);
-        if (this.state.currentModel) {
-            this.state.currentModel.scale.set(this.state.modelScale, this.state.modelScale, this.state.modelScale);
-        }
+        if (!this.state.lastSelectedModel) return;
+        
+        const scale = parseFloat(document.getElementById('modelScale').value);
+        document.getElementById('modelScaleValue').textContent = scale.toFixed(1);
+        
+        this.state.updateModelScale(this.state.lastSelectedModel, scale);
     }
 
     updateBrightness() {
         this.state.globalBrightness = parseFloat(document.getElementById('brightness').value);
         document.getElementById('brightnessValue').textContent = this.state.globalBrightness.toFixed(1);
-        updateAllMaterialUniforms(this.state.currentModel, 'brightness', this.state.globalBrightness);
+        
+        // 모든 모델에 적용
+        const allModels = this.state.getAllModels();
+        for (let i = 0; i < allModels.length; i++) {
+            updateAllMaterialUniforms(allModels[i].object, 'brightness', this.state.globalBrightness);
+        }
     }
 
     updateOutlineThickness() {
         const value = parseFloat(document.getElementById('outlineThickness').value);
         document.getElementById('outlineValue').textContent = value.toFixed(1);
-        if (this.renderManager.outlineMaterial?.uniforms) {
+        if (this.renderManager.outlineMaterial && this.renderManager.outlineMaterial.uniforms) {
             this.renderManager.outlineMaterial.uniforms.outlineThickness.value = value;
         }
     }
@@ -95,7 +103,7 @@ export class UIControls {
     updateDepthSensitivity() {
         const value = parseFloat(document.getElementById('depthSensitivity').value);
         document.getElementById('depthSensitivityValue').textContent = value.toFixed(1);
-        if (this.renderManager.outlineMaterial?.uniforms) {
+        if (this.renderManager.outlineMaterial && this.renderManager.outlineMaterial.uniforms) {
             this.renderManager.outlineMaterial.uniforms.depthSensitivity.value = value;
         }
     }
@@ -103,7 +111,12 @@ export class UIControls {
     updateShadowIntensity() {
         const value = parseFloat(document.getElementById('shadowIntensity').value);
         document.getElementById('shadowIntensityValue').textContent = value.toFixed(1);
-        updateAllMaterialUniforms(this.state.currentModel, 'shadowIntensity', value);
+        
+        // 모든 모델에 적용
+        const allModels = this.state.getAllModels();
+        for (let i = 0; i < allModels.length; i++) {
+            updateAllMaterialUniforms(allModels[i].object, 'shadowIntensity', value);
+        }
     }
 
     updateLightRotation() {
@@ -127,7 +140,12 @@ export class UIControls {
         const dirZ = Math.cos(y) * Math.cos(x);
         
         this.state.lightDirection.set(dirX, dirY, dirZ);
-        updateAllMaterialUniforms(this.state.currentModel, 'lightDirection', this.state.lightDirection);
+        
+        // 모든 모델에 적용
+        const allModels = this.state.getAllModels();
+        for (let i = 0; i < allModels.length; i++) {
+            updateAllMaterialUniforms(allModels[i].object, 'lightDirection', this.state.lightDirection);
+        }
     }
 
     updateMoveSpeed() {
@@ -140,8 +158,11 @@ export class UIControls {
         this.state.webtoonMode = !this.state.webtoonMode;
         document.getElementById('webtoonBtn').textContent = `웹툰 모드: ${this.state.webtoonMode ? 'ON' : 'OFF'}`;
         
-        if (this.state.currentModel) {
-            this.state.currentModel.traverse((child) => {
+        // 모든 모델에 적용
+        const allModels = this.state.getAllModels();
+        for (let i = 0; i < allModels.length; i++) {
+            const model = allModels[i].object;
+            model.traverse((child) => {
                 if (child.isMesh && child.userData.webtoonMaterial && child.userData.standardMaterial) {
                     child.material = this.state.webtoonMode ? child.userData.webtoonMaterial : child.userData.standardMaterial;
                 }
@@ -152,7 +173,12 @@ export class UIControls {
     toggleShadows() {
         this.state.shadowsEnabled = !this.state.shadowsEnabled;
         document.getElementById('shadowBtn').textContent = `그림자: ${this.state.shadowsEnabled ? 'ON' : 'OFF'}`;
-        updateAllMaterialUniforms(this.state.currentModel, 'shadowsEnabled', this.state.shadowsEnabled);
+        
+        // 모든 모델에 적용
+        const allModels = this.state.getAllModels();
+        for (let i = 0; i < allModels.length; i++) {
+            updateAllMaterialUniforms(allModels[i].object, 'shadowsEnabled', this.state.shadowsEnabled);
+        }
     }
 
     toggleControls() {
@@ -168,4 +194,99 @@ export class UIControls {
         document.getElementById('lightRotZ').value = 0;
         this.updateLightRotation();
     }
+
+    // 모델 목록 UI 업데이트
+    updateModelListUI() {
+        const modelListElement = document.getElementById('modelList');
+        modelListElement.innerHTML = '';
+        
+        const models = this.state.getAllModels();
+        
+        if (models.length === 0) {
+            const emptyMessage = document.createElement('div');
+            emptyMessage.textContent = '모델이 없습니다';
+            emptyMessage.style.color = '#888';
+            emptyMessage.style.textAlign = 'center';
+            emptyMessage.style.padding = '20px';
+            emptyMessage.style.fontSize = '12px';
+            modelListElement.appendChild(emptyMessage);
+            return;
+        }
+        
+        const self = this;
+        for (let i = 0; i < models.length; i++) {
+            const modelData = models[i];
+            const modelItem = document.createElement('div');
+            modelItem.className = 'model-item';
+            
+            // 선택된 모델들 표시
+            if (this.state.selectedModels.has(modelData.id)) {
+                modelItem.classList.add('selected');
+            }
+            
+            // 마지막 선택된 모델 (transform control 대상) 특별 표시
+            if (this.state.lastSelectedModel === modelData.id) {
+                modelItem.classList.add('last-selected');
+            }
+            
+            modelItem.innerHTML = `
+                <div class="model-name" title="${modelData.filename}">${modelData.filename}</div>
+                <div class="model-actions">
+                    <button class="action-btn delete-btn" onclick="event.stopPropagation(); deleteModelById('${modelData.id}')">×</button>
+                </div>
+            `;
+            
+            modelItem.addEventListener('click', function(e) {
+                const multiSelect = e.shiftKey;
+                window.selectModel(modelData.id, multiSelect);
+            });
+            
+            modelListElement.appendChild(modelItem);
+        }
+    }
 }
+
+// 전역 함수로 모델 삭제 (HTML onclick에서 사용)
+window.deleteModelById = function(modelId) {
+    if (window.state && window.state.models.has(modelId)) {
+        // 모델 삭제
+        window.state.removeModel(modelId);
+        
+        // 선택된 모델이 삭제된 경우 UI 업데이트
+        if (window.state.selectedModels.has(modelId)) {
+            window.state.selectedModels.delete(modelId);
+            
+            // 마지막 선택된 모델이 삭제된 경우 다른 모델로 변경
+            if (window.state.lastSelectedModel === modelId) {
+                const remaining = Array.from(window.state.selectedModels);
+                window.state.lastSelectedModel = remaining.length > 0 ? remaining[0] : null;
+                
+                // Transform control 업데이트
+                if (window.state.lastSelectedModel) {
+                    const modelData = window.state.models.get(window.state.lastSelectedModel);
+                    if (modelData && window.transformControls) {
+                        window.transformControls.attach(modelData.object);
+                    }
+                } else {
+                    document.getElementById('transform-panel').style.display = 'none';
+                    if (window.transformControls) {
+                        window.transformControls.detach();
+                    }
+                }
+            }
+        }
+        
+        // 모델 목록 UI 즉시 업데이트
+        if (window.uiControls) {
+            window.uiControls.updateModelListUI();
+            
+            // 선택된 모델이 있으면 UI 업데이트
+            if (window.state.lastSelectedModel) {
+                const lastSelected = window.state.getLastSelectedModel();
+                if (lastSelected) {
+                    window.uiControls.updateSelectedModelUI(lastSelected);
+                }
+            }
+        }
+    }
+};

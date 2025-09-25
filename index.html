@@ -26,6 +26,8 @@
                     </div>
                 </div>
 
+                <!-- 모델 목록 섹션 제거 - 오른쪽 패널로 이동 -->
+
                 <div class="control-group">
                     <label>크기: <span id="modelScaleValue">1.0</span>x</label>
                     <input type="range" id="modelScale" min="0.1" max="5.0" step="0.1" value="1.0" oninput="updateModelScale()">
@@ -89,6 +91,11 @@
 
         <!-- 오브젝트 변형 패널 (오른쪽) -->
         <div id="transform-panel" class="transform-panel" style="display: none;">
+            <div class="transform-header">
+                <h3 id="selectedModelName">선택된 모델</h3>
+                <button onclick="deleteSelectedModel()" class="delete-btn-small">삭제</button>
+            </div>
+            
             <div class="angle-group">
                 <h4 style="margin: 0 0 10px 0; color: #4a9eff;">Position</h4>
                 
@@ -125,6 +132,16 @@
                         <input type="number" id="modelRotZ" min="-180" max="180" step="5" value="0" style="width: 100%; padding: 3px; border-radius: 3px; border: 1px solid #555; background: #333; color: white; font-size: 12px;">
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- 모델 목록 패널 (오른쪽, transform 패널 아래) -->
+        <div id="model-list-panel" class="model-list-panel">
+            <div class="panel-header">
+                <h3>모델 목록</h3>
+            </div>
+            <div id="modelList" class="model-list">
+                <!-- 모델 목록이 여기에 동적으로 추가됩니다 -->
             </div>
         </div>
 
