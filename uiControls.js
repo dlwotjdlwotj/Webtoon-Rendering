@@ -1,10 +1,11 @@
 import { updateAllMaterialUniforms } from './materials.js';
 
 export class UIControls {
-    constructor(state, cameraController, renderManager) {
+    constructor(state, cameraController, renderManager, historyManager) {
         this.state = state;
         this.cameraController = cameraController;
         this.renderManager = renderManager;
+        this.historyManager = historyManager;
     }
 
     setupEventListeners() {
@@ -41,6 +42,7 @@ export class UIControls {
         };
         
         this.state.updateModelPosition(this.state.lastSelectedModel, position);
+        this.historyManager.onModelMoved();
     }
 
     updateModelPositionUI(position) {
@@ -59,6 +61,7 @@ export class UIControls {
         };
         
         this.state.updateModelRotation(this.state.lastSelectedModel, rotation);
+        this.historyManager.onModelRotated();
     }
 
     updateModelRotationUI(rotation) {
@@ -77,6 +80,7 @@ export class UIControls {
         };
         
         this.state.updateModelScale(this.state.lastSelectedModel, scale);
+        this.historyManager.onModelScaled();
         
         // 기존 스케일 컨트롤과 동기화 (평균값 사용)
         const avgScale = (scale.x + scale.y + scale.z) / 3;
@@ -123,6 +127,7 @@ export class UIControls {
         
         // 기존 방식으로 균등 스케일 적용
         this.state.updateModelScale(this.state.lastSelectedModel, scale);
+        this.historyManager.onModelScaled();
         
         // Transform Panel의 스케일 UI도 동기화
         document.getElementById('modelScaleX').value = scale;
@@ -298,6 +303,10 @@ export class UIControls {
 // 전역 함수로 모델 삭제 (HTML onclick에서 사용)
 window.deleteModelById = function(modelId) {
     if (window.state && window.state.models.has(modelId)) {
+        // 삭제할 모델의 이름 저장
+        const modelData = window.state.models.get(modelId);
+        const modelName = modelData ? modelData.filename : '알 수 없는 모델';
+        
         // 모델 삭제
         window.state.removeModel(modelId);
         
@@ -312,9 +321,9 @@ window.deleteModelById = function(modelId) {
                 
                 // Transform control 업데이트
                 if (window.state.lastSelectedModel) {
-                    const modelData = window.state.models.get(window.state.lastSelectedModel);
-                    if (modelData && window.transformControls) {
-                        window.transformControls.attach(modelData.object);
+                    const remainingModelData = window.state.models.get(window.state.lastSelectedModel);
+                    if (remainingModelData && window.transformControls) {
+                        window.transformControls.attach(remainingModelData.object);
                     }
                 } else {
                     document.getElementById('transform-panel').style.display = 'none';
@@ -336,6 +345,11 @@ window.deleteModelById = function(modelId) {
                     window.uiControls.updateSelectedModelUI(lastSelected);
                 }
             }
+        }
+        
+        // 히스토리에 삭제 기록
+        if (window.historyManager) {
+            window.historyManager.onModelDeleted(modelName);
         }
     }
 };

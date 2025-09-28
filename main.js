@@ -5,9 +5,10 @@ import { GLBLoader } from './loaders/glbLoader.js';
 import { OBJLoader } from './loaders/objLoader.js';
 import { UIControls } from './uiControls.js';
 import { TransformControls } from './transformControls.js';
+import { HistoryManager } from './historyManager.js';
 
 const state = new AppState();
-let renderManager, cameraController, uiControls, transformControls;
+let renderManager, cameraController, uiControls, transformControls, historyManager;
 
 function init() {
     state.scene = new THREE.Scene();
@@ -36,7 +37,10 @@ function init() {
     
     cameraController = new CameraController(state.camera);
     
-    uiControls = new UIControls(state, cameraController, renderManager);
+    // 히스토리 매니저 초기화
+    historyManager = new HistoryManager(state);
+    
+    uiControls = new UIControls(state, cameraController, renderManager, historyManager);
     
     transformControls = new TransformControls(state.camera, state.renderer.domElement);
     transformControls.setState(state); // state 참조 설정
@@ -70,10 +74,27 @@ function init() {
         }
     };
     
+    // 드래그 완료 시 히스토리 저장
+    transformControls.onPositionDragEnd = () => {
+        historyManager.onModelMoved();
+    };
+    
+    transformControls.onRotationDragEnd = () => {
+        historyManager.onModelRotated();
+    };
+    
+    transformControls.onScaleDragEnd = () => {
+        historyManager.onModelScaled();
+    };
+    
     setupLighting();
     setupEventListeners();
     
     cameraController.updatePosition();
+    
+    // 초기 상태를 히스토리에 저장
+    historyManager.saveInitialState();
+    
     animate();
 }
 
@@ -105,24 +126,47 @@ function setupEventListeners() {
     canvas.addEventListener('wheel', (e) => cameraController.onMouseWheel(e));
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     
-    // 키보드 이벤트 처리
-    document.addEventListener('keydown', (e) => {
+    // 키보드 이벤트 처리 - window에서 캡처하여 우선순위 높임
+    window.addEventListener('keydown', (e) => {
+        // INPUT 태그에 포커스가 있으면 무시
         if (document.activeElement.tagName === 'INPUT') return;
         
         const key = e.key.toLowerCase();
         
+        // Ctrl+Z로 실행 취소 (최우선 처리)
+        if (e.ctrlKey && key === 'z' && !e.shiftKey) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            historyManager.undo();
+            console.log('Ctrl+Z 실행됨'); // 디버그용
+            return;
+        }
+        
+        // Ctrl+Y 또는 Ctrl+Shift+Z로 다시 실행
+        if ((e.ctrlKey && key === 'y') || (e.ctrlKey && e.shiftKey && key === 'z')) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            historyManager.redo();
+            console.log('Ctrl+Y 실행됨'); // 디버그용
+            return;
+        }
+        
         // Ctrl+A로 모든 모델 선택
         if (e.ctrlKey && key === 'a') {
+            e.preventDefault();
+            e.stopPropagation();
             state.selectAllModels();
             updateSelectionUI();
-            e.preventDefault();
             return;
         }
         
         // Delete 키로 선택된 모델들 삭제
         if (e.key === 'Delete' && state.selectedModels.size > 0) {
-            deleteSelectedModels();
             e.preventDefault();
+            e.stopPropagation();
+            deleteSelectedModels();
             return;
         }
         
@@ -135,25 +179,28 @@ function setupEventListeners() {
         // Q, W, E 키로 기즈모 모드 전환 - 모델이 있고 우클릭 중이 아닐 때만
         if (state.lastSelectedModel) {
             if (key === 'q') {
-                switchToPositionMode();
                 e.preventDefault();
+                e.stopPropagation();
+                switchToPositionMode();
                 return;
             }
             if (key === 'w') {
-                switchToRotationMode();
                 e.preventDefault();
+                e.stopPropagation();
+                switchToRotationMode();
                 return;
             }
             if (key === 'e') {
-                switchToScaleMode();
                 e.preventDefault();
+                e.stopPropagation();
+                switchToScaleMode();
                 return;
             }
         }
         
         // 나머지 키들은 카메라 컨트롤러로 전달
         cameraController.onKeyDown(e);
-    });
+    }, true); // true로 캡처링 단계에서 처리
     
     document.addEventListener('keyup', (e) => cameraController.onKeyUp(e));
     
@@ -358,6 +405,9 @@ function loadModel(model, filename) {
     // 모델 기본 스케일 적용
     model.scale.set(CONFIG.defaults.modelScale, CONFIG.defaults.modelScale, CONFIG.defaults.modelScale);
     
+    // 히스토리에 모델 추가 기록 (선택하기 전에)
+    historyManager.onModelAdded(filename);
+    
     // 새로 추가된 모델 자동 선택
     selectModel(modelId, false);
     
@@ -369,9 +419,24 @@ function loadModel(model, filename) {
 
 function deleteSelectedModels() {
     if (state.selectedModels.size > 0) {
+        // 삭제할 모델들의 이름 저장 (히스토리용)
+        const deletedNames = [];
+        state.selectedModels.forEach(modelId => {
+            const model = state.models.get(modelId);
+            if (model) {
+                deletedNames.push(model.filename);
+            }
+        });
+        
         state.deleteSelectedModels();
         updateSelectionUI();
         uiControls.updateModelListUI();
+        
+        // 히스토리에 삭제 기록
+        const names = deletedNames.length > 1 ? 
+            `${deletedNames.length}개 모델` : 
+            deletedNames[0];
+        historyManager.onModelDeleted(names);
     }
 }
 
@@ -433,5 +498,6 @@ window.selectModel = selectModel;
 window.state = state;
 window.transformControls = transformControls;
 window.uiControls = uiControls;
+window.historyManager = historyManager;
 
 document.addEventListener('DOMContentLoaded', init);
