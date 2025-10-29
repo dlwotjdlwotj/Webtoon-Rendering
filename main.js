@@ -206,6 +206,9 @@ function setupEventListeners() {
     
     document.getElementById('modelFileInput').addEventListener('change', handleFileUpload);
     
+    // 드래그 앤 드롭 기능 추가
+    setupDragAndDrop();
+    
     uiControls.setupEventListeners();
     
     // 기즈모 모드 전환 아이콘 이벤트 리스너 - 수정된 부분
@@ -397,6 +400,134 @@ async function handleFileUpload(event) {
     
     // 파일 입력 초기화 (같은 파일 다시 선택 가능)
     event.target.value = '';
+}
+
+function setupDragAndDrop() {
+    const dropZone = document.getElementById('container');
+    const overlay = createDropOverlay();
+    
+    // 드래그 오버 시 오버레이 표시
+    dropZone.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        overlay.style.display = 'flex';
+    });
+    
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    });
+    
+    dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // 컨테이너를 완전히 벗어났을 때만 오버레이 숨김
+        if (e.target === dropZone) {
+            overlay.style.display = 'none';
+        }
+    });
+    
+    dropZone.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        overlay.style.display = 'none';
+        
+        const files = Array.from(e.dataTransfer.files);
+        const modelFiles = files.filter(file => {
+            const ext = file.name.toLowerCase().split('.').pop();
+            return ext === 'glb' || ext === 'gltf' || ext === 'obj';
+        });
+        
+        if (modelFiles.length === 0) {
+            alert('GLB, GLTF 또는 OBJ 파일만 지원됩니다.');
+            return;
+        }
+        
+        // 여러 파일 순차 로딩
+        for (const file of modelFiles) {
+            await processDroppedFile(file);
+        }
+    });
+}
+
+function createDropOverlay() {
+    const overlay = document.createElement('div');
+    overlay.id = 'drop-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(74, 158, 255, 0.9);
+        backdrop-filter: blur(10px);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        pointer-events: none;
+    `;
+    
+    const message = document.createElement('div');
+    message.style.cssText = `
+        color: white;
+        font-size: 48px;
+        font-weight: bold;
+        text-align: center;
+        text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    `;
+    message.innerHTML = `
+        <div style="font-size: 72px; margin-bottom: 20px;">📁</div>
+        <div>파일을 놓으세요</div>
+        <div style="font-size: 24px; margin-top: 15px; opacity: 0.9;">GLB, GLTF, OBJ 지원</div>
+    `;
+    
+    overlay.appendChild(message);
+    document.body.appendChild(overlay);
+    
+    return overlay;
+}
+
+async function processDroppedFile(file) {
+    return new Promise((resolve, reject) => {
+        const ext = file.name.toLowerCase().split('.').pop();
+        
+        if (ext === 'glb' || ext === 'gltf') {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const loader = new GLBLoader(state);
+                    const model = await loader.load(e.target.result);
+                    loadModel(model, file.name);
+                    resolve();
+                } catch (error) {
+                    console.error('모델 로딩 실패:', error);
+                    alert(`${file.name} 로딩 실패: ${error.message}`);
+                    reject(error);
+                }
+            };
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(file);
+        } else if (ext === 'obj') {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const loader = new OBJLoader(state);
+                    const model = loader.load(e.target.result);
+                    loadModel(model, file.name);
+                    resolve();
+                } catch (error) {
+                    console.error('모델 로딩 실패:', error);
+                    alert(`${file.name} 로딩 실패: ${error.message}`);
+                    reject(error);
+                }
+            };
+            reader.onerror = reject;
+            reader.readAsText(file);
+        } else {
+            resolve();
+        }
+    });
 }
 
 function loadModel(model, filename) {
