@@ -33,6 +33,7 @@ export class AppState {
         this.lastSelectedModel = null;
         this.modelCounter = 0;
         this.webtoonMode = true;
+        this.outlineEnabled = true;
         this.shadowsEnabled = true;
         this.globalBrightness = CONFIG.defaults.brightness;
         this.lightDirection = new THREE.Vector3();

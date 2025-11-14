@@ -78,7 +78,7 @@ export class RenderManager {
     render() {
         const hasModels = this.state.getAllModels().length > 0;
         
-        if (this.state.webtoonMode && hasModels) {
+        if (this.state.webtoonMode && hasModels && this.state.outlineEnabled) {
             // Color pass
             this.state.renderer.setRenderTarget(this.colorTarget);
             this.state.renderer.clear();

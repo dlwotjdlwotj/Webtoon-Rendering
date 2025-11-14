@@ -614,6 +614,7 @@ function animate() {
 // Global functions
 window.toggleControls = () => uiControls.toggleControls();
 window.toggleWebtoonMode = () => uiControls.toggleWebtoonMode();
+window.toggleOutline = () => uiControls.toggleOutline();
 window.toggleShadows = () => uiControls.toggleShadows();
 window.resetCamera = () => cameraController.reset();
 window.resetLightDirection = () => uiControls.resetLightDirection();

@@ -254,6 +254,13 @@ export class UIControls {
         }
     }
 
+    toggleOutline() {
+        this.state.outlineEnabled = !this.state.outlineEnabled;
+        const btn = document.getElementById('outlineBtn');
+        btn.textContent = '선';
+        btn.style.background = this.state.outlineEnabled ? '#4a9eff' : '#666';
+    }
+
     toggleControls() {
         const controls = document.getElementById('controls');
         controls.classList.toggle('collapsed');
