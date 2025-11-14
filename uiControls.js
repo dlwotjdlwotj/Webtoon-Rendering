@@ -30,6 +30,9 @@ export class UIControls {
         document.getElementById('modelScaleX').addEventListener('input', () => this.updateModelScaleFromUI());
         document.getElementById('modelScaleY').addEventListener('input', () => this.updateModelScaleFromUI());
         document.getElementById('modelScaleZ').addEventListener('input', () => this.updateModelScaleFromUI());
+        
+        // Bilateral filter 입력 리스너
+        document.getElementById('modelSigmaColor').addEventListener('input', () => this.updateModelSigmaColor());
     }
 
     updateModelPositionFromUI() {
@@ -117,6 +120,18 @@ export class UIControls {
             
         document.getElementById('modelScale').value = avgScale;
         document.getElementById('modelScaleValue').textContent = avgScale.toFixed(1);
+        
+        // Bilateral filter UI 업데이트
+        const bilateralBtn = document.getElementById('modelBilateralBtn');
+        if (bilateralBtn) {
+            bilateralBtn.textContent = '텍스처 단순화';
+            bilateralBtn.style.background = modelData.bilateralFilterEnabled ? '#4a9eff' : '#666';
+        }
+        
+        const sigmaColorSlider = document.getElementById('modelSigmaColor');
+        if (sigmaColorSlider) {
+            sigmaColorSlider.value = modelData.sigmaColor || 0.2;
+        }
     }
 
     updateModelScale() {
@@ -210,7 +225,9 @@ export class UIControls {
 
     toggleWebtoonMode() {
         this.state.webtoonMode = !this.state.webtoonMode;
-        document.getElementById('webtoonBtn').textContent = `웹툰 모드: ${this.state.webtoonMode ? 'ON' : 'OFF'}`;
+        const btn = document.getElementById('webtoonBtn');
+        btn.textContent = '웹툰 모드';
+        btn.style.background = this.state.webtoonMode ? '#4a9eff' : '#666';
         
         // 모든 모델에 적용
         const allModels = this.state.getAllModels();
@@ -226,7 +243,9 @@ export class UIControls {
 
     toggleShadows() {
         this.state.shadowsEnabled = !this.state.shadowsEnabled;
-        document.getElementById('shadowBtn').textContent = `그림자: ${this.state.shadowsEnabled ? 'ON' : 'OFF'}`;
+        const btn = document.getElementById('shadowBtn');
+        btn.textContent = '그림자';
+        btn.style.background = this.state.shadowsEnabled ? '#4a9eff' : '#666';
         
         // 모든 모델에 적용
         const allModels = this.state.getAllModels();
@@ -296,6 +315,37 @@ export class UIControls {
             });
             
             modelListElement.appendChild(modelItem);
+        }
+    }
+
+    toggleModelBilateralFilter() {
+        const modelData = this.state.getLastSelectedModel();
+        if (!modelData) return;
+        
+        modelData.bilateralFilterEnabled = !modelData.bilateralFilterEnabled;
+        
+        const btn = document.getElementById('modelBilateralBtn');
+        if (btn) {
+            btn.textContent = '텍스처 단순화';
+            btn.style.background = modelData.bilateralFilterEnabled ? '#4a9eff' : '#666';
+        }
+        
+        // 해당 모델의 material uniform 업데이트
+        updateAllMaterialUniforms(modelData.object, 'celShadingEnabled', modelData.bilateralFilterEnabled);
+    }
+
+    updateModelSigmaColor() {
+        const modelData = this.state.getLastSelectedModel();
+        if (!modelData) return;
+        
+        const slider = document.getElementById('modelSigmaColor');
+        
+        if (slider) {
+            const value = parseFloat(slider.value);
+            modelData.sigmaColor = value;
+            
+            // 해당 모델의 material uniform 업데이트
+            updateAllMaterialUniforms(modelData.object, 'celLevels', value);
         }
     }
 }

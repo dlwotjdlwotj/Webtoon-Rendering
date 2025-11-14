@@ -26,8 +26,6 @@
                     </div>
                 </div>
 
-                <!-- 모델 목록 섹션 제거 - 오른쪽 패널로 이동 -->
-
                 <div class="control-group">
                     <label>크기: <span id="modelScaleValue">1.0</span>x</label>
                     <input type="range" id="modelScale" min="0.1" max="5.0" step="0.1" value="1.0" oninput="updateModelScale()">
@@ -53,8 +51,9 @@
                     <input type="range" id="shadowIntensity" min="0.0" max="0.8" step="0.1" value="0.3">
                 </div>
                 
+                
                 <div class="angle-group">
-                    <h4 style="margin: 0 0 10px 0; color: #4a9eff;">빛 방향 (Rotation)</h4>
+                    <h4 style="margin: 0 0 10px 0; color: #4a9eff;">빛 방향</h4>
                     
                     <div style="display: flex; gap: 15px; flex-wrap: wrap;">
                         <div style="flex: 1; min-width: 80px;">
@@ -73,8 +72,8 @@
                 </div>
                 
                 <div class="control-group">
-                    <button onclick="toggleWebtoonMode()" id="webtoonBtn">웹툰 모드: ON</button>
-                    <button onclick="toggleShadows()" id="shadowBtn">그림자: ON</button>
+                    <button onclick="toggleWebtoonMode()" id="webtoonBtn" style="background: #4a9eff;">웹툰 모드</button>
+                    <button onclick="toggleShadows()" id="shadowBtn" style="background: #4a9eff;">그림자</button>
                 </div>
                 
                 <div class="control-group">
@@ -89,7 +88,6 @@
             </div>
         </div>
 
-        <!-- 오브젝트 변형 패널 (오른쪽) -->
         <div id="transform-panel" class="transform-panel" style="display: none;">
             <div class="transform-header">
                 <h3 id="selectedModelName">선택된 모델</h3>
@@ -116,8 +114,6 @@
             </div>
             
             <div class="angle-group">
-                <h4 style="margin: 0 0 10px 0; color: #4a9eff;">Rotation</h4>
-                
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <div style="flex: 1; min-width: 55px;">
                         <label style="font-size: 11px;">X</label>
@@ -152,48 +148,45 @@
                     </div>
                 </div>
             </div>
+            
+            <div class="angle-group">
+                <div class="control-group" style="margin-bottom: 10px;">
+                    <button onclick="toggleModelBilateralFilter()" id="modelBilateralBtn" style="width: 100%; padding: 8px; background: #666;">텍스처 단순화</button>
+                </div>
+                
+                <div class="control-group">
+                    <input type="range" id="modelSigmaColor" min="0.01" max="2.0" step="0.01" value="0.2" oninput="updateModelSigmaColor()" style="width: 100%;">
+                </div>
+            </div>
         </div>
 
-        <!-- 모델 목록 패널 (오른쪽, transform 패널 아래) -->
         <div id="model-list-panel" class="model-list-panel">
             <div class="panel-header">
                 <h3>모델 목록</h3>
             </div>
             <div id="modelList" class="model-list">
-                <!-- 모델 목록이 여기에 동적으로 추가됩니다 -->
             </div>
         </div>
 
         <div id="transform-icons" class="transform-icons">
-            <!-- Position Tool Icon -->
             <svg class="icon-indicator" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" title="Position">
-                <!-- 상단 화살표 -->
                 <path d="M12 3 L12 9" stroke-linecap="round"/>
                 <path d="M9 6 L12 3 L15 6" stroke-linejoin="round" stroke-linecap="round"/>
-                <!-- 하단 화살표 -->
                 <path d="M12 15 L12 21" stroke-linecap="round"/>
                 <path d="M9 18 L12 21 L15 18" stroke-linejoin="round" stroke-linecap="round"/>
-                <!-- 왼쪽 화살표 -->
                 <path d="M3 12 L9 12" stroke-linecap="round"/>
                 <path d="M6 9 L3 12 L6 15" stroke-linejoin="round" stroke-linecap="round"/>
-                <!-- 오른쪽 화살표 -->
                 <path d="M15 12 L21 12" stroke-linecap="round"/>
                 <path d="M18 9 L21 12 L18 15" stroke-linejoin="round" stroke-linecap="round"/>
             </svg>
-            <!-- Rotation Tool Icon -->
             <svg class="icon-indicator" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" title="Rotation">
-                <!-- 상단 호 -->
                 <path d="M7 5 A 7 7 0 0 1 17 5" stroke-linecap="round"/>
                 <path d="M15.5 3.5 L17 5 L15.5 6.5" stroke-linejoin="round" stroke-linecap="round"/>
-                <!-- 하단 호 -->
                 <path d="M7 19 A 7 7 0 0 0 17 19" stroke-linecap="round"/>
                 <path d="M8.5 20.5 L7 19 L8.5 17.5" stroke-linejoin="round" stroke-linecap="round"/>
             </svg>
-            <!-- Scale Tool Icon -->
             <svg class="icon-indicator" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" title="Scale">
-                <!-- 중앙 사각형 -->
                 <rect x="9" y="9" width="6" height="6" stroke-linejoin="round"/>
-                <!-- 모서리 핸들 -->
                 <rect x="7" y="7" width="2" height="2" fill="currentColor"/>
                 <rect x="15" y="7" width="2" height="2" fill="currentColor"/>
                 <rect x="7" y="15" width="2" height="2" fill="currentColor"/>

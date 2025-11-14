@@ -17,7 +17,9 @@ export const CONFIG = {
         depthSensitivity: 5.0,
         shadowIntensity: 0.3,
         lightRotation: { x: 30, y: 45, z: 0 },
-        moveSpeed: 0.1
+        moveSpeed: 0.1,
+        celShadingEnabled: false,
+        celLevels: 0.2
     }
 };
 
@@ -35,6 +37,8 @@ export class AppState {
         this.globalBrightness = CONFIG.defaults.brightness;
         this.lightDirection = new THREE.Vector3();
         this.lightRotation = { ...CONFIG.defaults.lightRotation };
+        this.celShadingEnabled = CONFIG.defaults.celShadingEnabled;
+        this.celLevels = CONFIG.defaults.celLevels;
     }
 
     addModel(model, filename) {
@@ -45,7 +49,9 @@ export class AppState {
             filename: filename || `Model ${this.modelCounter}`,
             position: { x: 0, y: 0, z: 0 },
             rotation: { x: 0, y: 0, z: 0 },
-            scale: { x: CONFIG.defaults.modelScale, y: CONFIG.defaults.modelScale, z: CONFIG.defaults.modelScale }
+            scale: { x: CONFIG.defaults.modelScale, y: CONFIG.defaults.modelScale, z: CONFIG.defaults.modelScale },
+            bilateralFilterEnabled: false,
+            sigmaColor: 0.2
         };
         
         this.models.set(modelId, modelData);
@@ -172,35 +178,28 @@ export class AppState {
             const modelData = selectedModels[i];
             const object = modelData.object;
             
-            // 현재 객체의 월드 위치
             const currentWorldPos = new THREE.Vector3();
             object.getWorldPosition(currentWorldPos);
             
-            // pivot을 원점으로 하는 상대 위치
             const relativePosition = new THREE.Vector3();
             relativePosition.subVectors(currentWorldPos, pivotPoint);
             
-            // 회전 매트릭스 생성 (오일러 각을 매트릭스로 변환)
             const rotationMatrix = new THREE.Matrix4();
             const euler = new THREE.Euler(deltaRotation.x, deltaRotation.y, deltaRotation.z, 'XYZ');
             rotationMatrix.makeRotationFromEuler(euler);
             
-            // 상대 위치에 회전 적용
             const newRelativePosition = relativePosition.clone();
             newRelativePosition.applyMatrix4(rotationMatrix);
             
-            // 새로운 월드 위치 계산
             const newWorldPosition = new THREE.Vector3();
             newWorldPosition.addVectors(pivotPoint, newRelativePosition);
             
-            // 위치 업데이트
             this.updateModelPosition(modelData.id, {
                 x: newWorldPosition.x,
                 y: newWorldPosition.y,
                 z: newWorldPosition.z
             });
             
-            // 객체 자체 회전도 동일하게 적용
             const currentRotation = new THREE.Euler().setFromQuaternion(object.quaternion);
             const newRotation = new THREE.Euler(
                 currentRotation.x + deltaRotation.x,
@@ -211,7 +210,6 @@ export class AppState {
             
             object.setRotationFromEuler(newRotation);
             
-            // 모델 데이터의 회전 정보 업데이트
             modelData.rotation.x = newRotation.x * 180 / Math.PI;
             modelData.rotation.y = newRotation.y * 180 / Math.PI;
             modelData.rotation.z = newRotation.z * 180 / Math.PI;
@@ -241,12 +239,10 @@ export class AppState {
     updateModelScale(modelId, scale) {
         const modelData = this.models.get(modelId);
         if (modelData) {
-            // scale이 숫자인 경우 (기존 호환성)
             if (typeof scale === 'number') {
                 modelData.scale = { x: scale, y: scale, z: scale };
                 modelData.object.scale.set(scale, scale, scale);
             } else {
-                // scale이 객체인 경우 (새로운 개별 스케일)
                 modelData.scale = { ...scale };
                 modelData.object.scale.set(scale.x, scale.y, scale.z);
             }

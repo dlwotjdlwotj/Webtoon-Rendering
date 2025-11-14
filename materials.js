@@ -9,7 +9,9 @@ export function createMaterials(texture, color, state, doubleSided = false) {
             lightDirection: { value: state.lightDirection },
             shadowsEnabled: { value: state.shadowsEnabled },
             shadowIntensity: { value: 0.3 },
-            brightness: { value: state.globalBrightness }
+            brightness: { value: state.globalBrightness },
+            celShadingEnabled: { value: false },
+            celLevels: { value: 0.2 }
         },
         vertexShader: webtoonVertexShader,
         fragmentShader: webtoonFragmentShader,
