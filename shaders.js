@@ -62,11 +62,29 @@ export const webtoonFragmentShader = `
         }
     }
     
+    // 텍스처 크기를 추정하는 함수 (mipmap level 기반)
+    vec2 getTextureSize(sampler2D tex, vec2 uv) {
+        vec2 dx = dFdx(uv);
+        vec2 dy = dFdy(uv);
+        float delta_max_sqr = max(dot(dx, dx), dot(dy, dy));
+        float mipLevel = 0.5 * log2(delta_max_sqr);
+        
+        // 기본 텍스처 크기 가정 (일반적으로 1024, 2048 등)
+        float baseSize = 2048.0;
+        float currentSize = baseSize / pow(2.0, max(0.0, mipLevel));
+        
+        return vec2(currentSize, currentSize);
+    }
+    
     // Bilateral Filtering 적용
     vec3 applyBilateralFilter(sampler2D tex, vec2 uv, float sigmaColor) {
         if (!celShadingEnabled) {
             return texture2D(tex, uv).rgb;  // OFF: 원본 텍스처 그대로
         }
+        
+        // 텍스처 크기 동적 계산
+        vec2 texSize = getTextureSize(tex, uv);
+        vec2 texelSize = 1.0 / texSize;
         
         // Bilateral filter 파라미터
         float sigmaSpace = 1.5;   // 공간 가우시안 표준편차
@@ -74,16 +92,13 @@ export const webtoonFragmentShader = `
         vec3 sum = vec3(0.0);
         float weightSum = 0.0;
         
-        // 픽셀 크기
-        float pixelSize = 0.002;
-        
         // 중심 픽셀 색상
         vec3 centerColor = texture2D(tex, uv).rgb;
         
         // 5x5 커널 순회
         for (int x = -2; x <= 2; x++) {
             for (int y = -2; y <= 2; y++) {
-                vec2 offset = vec2(float(x), float(y)) * pixelSize;
+                vec2 offset = vec2(float(x), float(y)) * texelSize;
                 vec2 sampleUV = uv + offset;
                 
                 // 경계 체크
