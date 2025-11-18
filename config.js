@@ -17,9 +17,7 @@ export const CONFIG = {
         depthSensitivity: 5.0,
         shadowIntensity: 0.3,
         lightRotation: { x: 30, y: 45, z: 0 },
-        moveSpeed: 0.1,
-        celShadingEnabled: false,
-        celLevels: 0.2
+        moveSpeed: 0.1
     }
 };
 
@@ -38,8 +36,6 @@ export class AppState {
         this.globalBrightness = CONFIG.defaults.brightness;
         this.lightDirection = new THREE.Vector3();
         this.lightRotation = { ...CONFIG.defaults.lightRotation };
-        this.celShadingEnabled = CONFIG.defaults.celShadingEnabled;
-        this.celLevels = CONFIG.defaults.celLevels;
     }
 
     addModel(model, filename) {
@@ -50,9 +46,7 @@ export class AppState {
             filename: filename || `Model ${this.modelCounter}`,
             position: { x: 0, y: 0, z: 0 },
             rotation: { x: 0, y: 0, z: 0 },
-            scale: { x: CONFIG.defaults.modelScale, y: CONFIG.defaults.modelScale, z: CONFIG.defaults.modelScale },
-            bilateralFilterEnabled: false,
-            sigmaColor: 0.2
+            scale: { x: CONFIG.defaults.modelScale, y: CONFIG.defaults.modelScale, z: CONFIG.defaults.modelScale }
         };
         
         this.models.set(modelId, modelData);

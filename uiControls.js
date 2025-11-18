@@ -30,9 +30,6 @@ export class UIControls {
         document.getElementById('modelScaleX').addEventListener('input', () => this.updateModelScaleFromUI());
         document.getElementById('modelScaleY').addEventListener('input', () => this.updateModelScaleFromUI());
         document.getElementById('modelScaleZ').addEventListener('input', () => this.updateModelScaleFromUI());
-        
-        // Bilateral filter 입력 리스너
-        document.getElementById('modelSigmaColor').addEventListener('input', () => this.updateModelSigmaColor());
     }
 
     updateModelPositionFromUI() {
@@ -120,18 +117,6 @@ export class UIControls {
             
         document.getElementById('modelScale').value = avgScale;
         document.getElementById('modelScaleValue').textContent = avgScale.toFixed(1);
-        
-        // Bilateral filter UI 업데이트
-        const bilateralBtn = document.getElementById('modelBilateralBtn');
-        if (bilateralBtn) {
-            bilateralBtn.textContent = '텍스처 단순화';
-            bilateralBtn.style.background = modelData.bilateralFilterEnabled ? '#4a9eff' : '#666';
-        }
-        
-        const sigmaColorSlider = document.getElementById('modelSigmaColor');
-        if (sigmaColorSlider) {
-            sigmaColorSlider.value = modelData.sigmaColor || 0.2;
-        }
     }
 
     updateModelScale() {
@@ -325,36 +310,6 @@ export class UIControls {
         }
     }
 
-    toggleModelBilateralFilter() {
-        const modelData = this.state.getLastSelectedModel();
-        if (!modelData) return;
-        
-        modelData.bilateralFilterEnabled = !modelData.bilateralFilterEnabled;
-        
-        const btn = document.getElementById('modelBilateralBtn');
-        if (btn) {
-            btn.textContent = '텍스처 단순화';
-            btn.style.background = modelData.bilateralFilterEnabled ? '#4a9eff' : '#666';
-        }
-        
-        // 해당 모델의 material uniform 업데이트
-        updateAllMaterialUniforms(modelData.object, 'celShadingEnabled', modelData.bilateralFilterEnabled);
-    }
-
-    updateModelSigmaColor() {
-        const modelData = this.state.getLastSelectedModel();
-        if (!modelData) return;
-        
-        const slider = document.getElementById('modelSigmaColor');
-        
-        if (slider) {
-            const value = parseFloat(slider.value);
-            modelData.sigmaColor = value;
-            
-            // 해당 모델의 material uniform 업데이트
-            updateAllMaterialUniforms(modelData.object, 'celLevels', value);
-        }
-    }
 }
 
 // 전역 함수로 모델 삭제 (HTML onclick에서 사용)

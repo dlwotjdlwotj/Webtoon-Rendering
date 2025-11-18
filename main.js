@@ -619,8 +619,6 @@ window.toggleShadows = () => uiControls.toggleShadows();
 window.resetCamera = () => cameraController.reset();
 window.resetLightDirection = () => uiControls.resetLightDirection();
 window.updateOutlineThickness = () => uiControls.updateOutlineThickness();
-window.toggleModelBilateralFilter = () => uiControls.toggleModelBilateralFilter();
-window.updateModelSigmaColor = () => uiControls.updateModelSigmaColor();
 window.updateModelScale = () => uiControls.updateModelScale();
 window.updateBrightness = () => uiControls.updateBrightness();
 window.takeScreenshot = takeScreenshot;
