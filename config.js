@@ -34,8 +34,14 @@ export class AppState {
         this.outlineEnabled = true;
         this.shadowsEnabled = true;
         this.globalBrightness = CONFIG.defaults.brightness;
-        this.lightDirection = new THREE.Vector3();
         this.lightRotation = { ...CONFIG.defaults.lightRotation };
+        // 초기 빛 방향 계산
+        const x = this.lightRotation.x * Math.PI / 180;
+        const y = this.lightRotation.y * Math.PI / 180;
+        const dirX = Math.sin(y) * Math.cos(x);
+        const dirY = -Math.sin(x);
+        const dirZ = Math.cos(y) * Math.cos(x);
+        this.lightDirection = new THREE.Vector3(dirX, dirY, dirZ);
     }
 
     addModel(model, filename) {

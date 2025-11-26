@@ -6,7 +6,7 @@ export function createMaterials(texture, color, state, doubleSided = false) {
     const webtoonMaterial = new THREE.ShaderMaterial({
         uniforms: {
             map: { value: texture },
-            lightDirection: { value: state.lightDirection },
+            lightDirection: { value: state.lightDirection.clone() },
             shadowsEnabled: { value: state.shadowsEnabled },
             shadowIntensity: { value: 0.3 },
             brightness: { value: state.globalBrightness },

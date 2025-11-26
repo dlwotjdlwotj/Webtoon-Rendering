@@ -90,6 +90,9 @@ function init() {
     setupLighting();
     setupEventListeners();
     
+    // 초기 빛 방향 설정
+    uiControls.updateLightDirection();
+    
     cameraController.updatePosition();
     
     // 초기 상태를 히스토리에 저장
@@ -619,6 +622,7 @@ window.toggleShadows = () => uiControls.toggleShadows();
 window.resetCamera = () => cameraController.reset();
 window.resetLightDirection = () => uiControls.resetLightDirection();
 window.updateOutlineThickness = () => uiControls.updateOutlineThickness();
+window.updateDepthSensitivity = () => uiControls.updateDepthSensitivity();
 window.updateModelScale = () => uiControls.updateModelScale();
 window.updateBrightness = () => uiControls.updateBrightness();
 window.takeScreenshot = takeScreenshot;

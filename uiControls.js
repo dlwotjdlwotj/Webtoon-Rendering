@@ -15,6 +15,8 @@ export class UIControls {
         document.getElementById('lightRotZ').addEventListener('input', () => this.updateLightRotation());
         document.getElementById('moveSpeedSlider').addEventListener('input', () => this.updateMoveSpeed());
         document.getElementById('brightness').addEventListener('input', () => this.updateBrightness());
+        document.getElementById('outlineThickness').addEventListener('input', () => this.updateOutlineThickness());
+        document.getElementById('depthSensitivity').addEventListener('input', () => this.updateDepthSensitivity());
         
         // 오브젝트 위치 입력 리스너
         document.getElementById('modelPosX').addEventListener('input', () => this.updateModelPositionFromUI());
